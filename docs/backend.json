@@ -7,24 +7,24 @@
       "type": "object",
       "properties": {
         "username": { "type": "string" },
-        "email": { "type": "string" },
         "balance": { "type": "number" },
         "role": { "type": "string", "enum": ["ADMIN", "VIP", "MEMBER"] },
         "isVerified": { "type": "boolean" },
-        "uid": { "type": "string" }
+        "uid": { "type": "string" },
+        "internalEmail": { "type": "string" }
       },
-      "required": ["username", "email", "balance", "role"]
+      "required": ["username", "balance", "role"]
     },
-    "VerificationCode": {
-      "title": "Verification Code",
-      "description": "كود التحقق المؤقت لتفعيل الحساب.",
+    "InviteKey": {
+      "title": "Invite Key",
+      "description": "مفتاح دعوة للسماح بالتسجيل.",
       "type": "object",
       "properties": {
-        "email": { "type": "string" },
-        "code": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "key": { "type": "string" },
+        "isUsed": { "type": "boolean" },
+        "usedBy": { "type": "string" }
       },
-      "required": ["email", "code", "createdAt"]
+      "required": ["key", "isUsed"]
     },
     "Announcement": {
       "title": "Announcement",
@@ -69,9 +69,9 @@
       "schema": "UserProfile",
       "description": "ملفات المستخدمين."
     },
-    "/verification_codes/{codeId}": {
-      "schema": "VerificationCode",
-      "description": "أكواد التحقق المؤقتة."
+    "/invite_keys/{keyId}": {
+      "schema": "InviteKey",
+      "description": "مفاتيح الدعوة."
     },
     "/announcements/{announcementId}": {
       "schema": "Announcement",
