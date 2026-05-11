@@ -14,7 +14,8 @@ const REALISTIC_NAMES = [
   'Rex_Official', 'Kone_Ko', 'Valk_Queen', 'Sniper_Elite', 'Shadow_King',
   'Neon_Ninja', 'Hyper_Active', 'Cool_Cat', 'Diamond_Hand', 'Roblox_Pro',
   'Dev_Master', 'Pixel_Art', 'Gaming_God', 'Crypto_King', 'Star_Dust',
-  'X_Darkness_X', 'RobuxMaster', 'Legend_007', 'SkyWalker', 'NoobDestroyer'
+  'X_Darkness_X', 'RobuxMaster', 'Legend_007', 'SkyWalker', 'NoobDestroyer',
+  'Elite_One', 'MasterBuilder', 'BloxStar', 'KingOfRobux', 'VoidWalker'
 ];
 
 interface PlayerBet {
@@ -35,6 +36,7 @@ export default function RocketPage() {
   const [history, setHistory] = useState<number[]>([1.45, 12.4, 2.1, 1.05, 5.5]);
   const [activeBets, setActiveBets] = useState<PlayerBet[]>([]);
   const [countdown, setCountdown] = useState(5);
+  const [targetPlayerCount, setTargetPlayerCount] = useState(15);
 
   const multiplierRef = useRef(1.00);
   const gameIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -64,6 +66,10 @@ export default function RocketPage() {
     setActiveBets([]);
     setHasCashedOut(false);
     setIsUserInRound(false);
+    
+    // Random target player count between 5 and 40
+    const newTarget = Math.floor(Math.random() * 35) + 5;
+    setTargetPlayerCount(newTarget);
 
     // Countdown logic
     countdownIntervalRef.current = setInterval(() => {
@@ -79,20 +85,28 @@ export default function RocketPage() {
     // Simulated players join one by one
     playerJoinIntervalRef.current = setInterval(() => {
       setActiveBets(prev => {
-        if (prev.length >= 12) return prev;
+        if (prev.length >= newTarget) return prev;
         
-        const randomName = REALISTIC_NAMES[Math.floor(Math.random() * REALISTIC_NAMES.length)];
-        if (prev.some(p => p.user === randomName)) return prev;
+        const availableNames = REALISTIC_NAMES.filter(name => !prev.some(p => p.user === name));
+        if (availableNames.length === 0) return prev;
+        
+        const randomName = availableNames[Math.floor(Math.random() * availableNames.length)];
+
+        // Random bet: 5% chance for a big "whale" bet, others smaller
+        const isWhale = Math.random() < 0.05;
+        const bet = isWhale 
+          ? Math.floor(Math.random() * 20000) + 5000 
+          : Math.floor(Math.random() * 800) + 10;
 
         const newPlayer: PlayerBet = {
           user: randomName,
-          bet: Math.floor(Math.random() * 5000) + 50,
-          targetMultiplier: 1.2 + (Math.random() * 10),
+          bet: bet,
+          targetMultiplier: 1.1 + (Math.random() * 8),
           cashedOut: false
         };
         return [...prev, newPlayer];
       });
-    }, 800);
+    }, 200);
   };
 
   const startFlying = () => {
@@ -100,21 +114,21 @@ export default function RocketPage() {
     setGameState('flying');
 
     gameIntervalRef.current = setInterval(() => {
-      const increment = 0.005 + (multiplierRef.current * 0.007);
+      const increment = 0.004 + (multiplierRef.current * 0.006);
       multiplierRef.current += increment;
       const currentMult = Number(multiplierRef.current.toFixed(2));
       setMultiplier(currentMult);
 
       // Check simulated players cash out
       setActiveBets(prev => prev.map(p => {
-        if (p.user !== 'You' && !p.cashedOut && currentMult >= p.targetMultiplier) {
+        if (p.user !== 'Admin' && !p.cashedOut && currentMult >= p.targetMultiplier) {
           return { ...p, cashedOut: true, cashedOutAt: currentMult };
         }
         return p;
       }));
 
-      // Crash chance
-      const crashChance = 0.002 + (multiplierRef.current * 0.0018);
+      // Crash chance increases with multiplier
+      const crashChance = 0.002 + (multiplierRef.current * 0.0015);
       if (Math.random() < crashChance) {
         crashGame();
       }
@@ -138,7 +152,7 @@ export default function RocketPage() {
     setIsUserInRound(true);
     
     const userBet: PlayerBet = {
-      user: 'You',
+      user: 'Admin', // User name is now Admin
       bet: betAmount,
       targetMultiplier: 999,
       cashedOut: false
@@ -152,7 +166,7 @@ export default function RocketPage() {
     addRobux(win);
     setHasCashedOut(true);
     setActiveBets(prev => prev.map(p => {
-      if (p.user === 'You') return { ...p, cashedOut: true, cashedOutAt: multiplier };
+      if (p.user === 'Admin') return { ...p, cashedOut: true, cashedOutAt: multiplier };
       return p;
     }));
   };
@@ -223,18 +237,18 @@ export default function RocketPage() {
             </h3>
             <div className="space-y-3 max-h-80 overflow-y-auto no-scrollbar">
               <AnimatePresence mode="popLayout">
-                {activeBets.map((player, i) => (
+                {[...activeBets].sort((a,b) => (a.user === 'Admin' ? -1 : 1)).map((player, i) => (
                   <motion.div 
                     key={`${player.user}-${i}`}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className={`flex justify-between items-center text-sm p-2.5 rounded-xl ${player.user === 'You' ? 'bg-primary/10 border border-primary/30' : 'bg-white/5'}`}
+                    className={`flex justify-between items-center text-sm p-2.5 rounded-xl ${player.user === 'Admin' ? 'bg-primary/10 border border-primary/30' : 'bg-white/5'}`}
                   >
-                    <span className={`font-medium ${player.user === 'You' ? 'text-primary' : 'text-muted-foreground'}`}>
+                    <span className={`font-medium ${player.user === 'Admin' ? 'text-primary font-black' : 'text-muted-foreground'}`}>
                       {player.user}
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-white/40">R$ {player.bet}</span>
+                      <span className="font-bold text-white/40">R$ {player.bet.toLocaleString()}</span>
                       {player.cashedOut && (
                         <motion.span 
                           initial={{ scale: 0.8, opacity: 0 }}
@@ -322,7 +336,7 @@ export default function RocketPage() {
                   </motion.div>
                   <h3 className="text-8xl font-headline font-black text-red-500 mb-2 drop-shadow-[0_0_40px_rgba(255,0,0,0.6)]">CRASHED!</h3>
                   <p className="text-3xl text-muted-foreground">Exploded at <span className="text-white font-bold">{multiplier.toFixed(2)}x</span></p>
-                  <div className="mt-8 text-primary font-bold animate-pulse">REPARING NEW LAUNCH...</div>
+                  <div className="mt-8 text-primary font-bold animate-pulse">REPAIRING NEW LAUNCH...</div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -332,3 +346,4 @@ export default function RocketPage() {
     </div>
   );
 }
+
