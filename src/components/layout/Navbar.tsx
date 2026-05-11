@@ -22,7 +22,7 @@ export const Navbar = () => {
     router.push('/auth');
   };
 
-  const isOwner = userProfile?.username?.toLowerCase() === 'dew';
+  const isOwner = userProfile?.role === 'OWNER' || userProfile?.username?.toLowerCase() === 'dew';
 
   return (
     <>

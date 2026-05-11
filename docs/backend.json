@@ -9,7 +9,7 @@
         "username": { "type": "string" },
         "usernameLowercase": { "type": "string" },
         "balance": { "type": "number" },
-        "role": { "type": "string", "enum": ["ADMIN", "VIP", "MEMBER", "USER"] },
+        "role": { "type": "string", "enum": ["OWNER", "ADMIN", "VIP", "MEMBER", "USER"] },
         "avatarUrl": { "type": "string" },
         "isVerified": { "type": "boolean" },
         "uid": { "type": "string" },

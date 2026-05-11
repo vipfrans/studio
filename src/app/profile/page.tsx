@@ -3,7 +3,7 @@
 
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { User, Settings, Shield, Target, TrendingUp, History, Coins, ArrowLeft, Check, Edit2, Loader2, Award, Camera } from 'lucide-react';
+import { User, Settings, Shield, Target, TrendingUp, History, Coins, ArrowLeft, Check, Edit2, Loader2, Award, Camera, Crown } from 'lucide-react';
 import Link from 'next/link';
 import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
@@ -102,10 +102,11 @@ export default function ProfilePage() {
 
             <div className="flex items-center justify-center gap-2 mb-2">
               <h2 className="text-2xl font-black text-white">{userProfile.username}</h2>
-              {userProfile.role === 'ADMIN' && <Award className="w-5 h-5 text-primary fill-primary/20" />}
+              {userProfile.role === 'OWNER' && <Crown className="w-6 h-6 text-yellow-400 fill-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" />}
+              {userProfile.role === 'ADMIN' && <Shield className="w-5 h-5 text-primary fill-primary/20" />}
               {userProfile.role === 'VIP' && <Award className="w-5 h-5 text-yellow-400" />}
             </div>
-            <p className="text-xs font-black text-primary uppercase tracking-[0.2em] mb-6">{userProfile.role}</p>
+            <p className={`text-xs font-black uppercase tracking-[0.2em] mb-6 ${userProfile.role === 'OWNER' ? 'text-yellow-400' : 'text-primary'}`}>{userProfile.role}</p>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-white/5 p-4 rounded-2xl border border-white/5">

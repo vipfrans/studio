@@ -12,7 +12,7 @@ import { collection, addDoc, query, orderBy, limit, serverTimestamp, where, getD
 import { useRobux } from '@/context/RobuxContext';
 import { useToast } from '@/hooks/use-toast';
 
-type UserRole = 'ADMIN' | 'VIP' | 'MEMBER' | 'USER';
+type UserRole = 'OWNER' | 'ADMIN' | 'VIP' | 'MEMBER' | 'USER';
 
 interface ChatMessage {
   id: string;
@@ -29,7 +29,7 @@ interface ChatMessage {
   isSimulated?: boolean;
 }
 
-const ROLES: UserRole[] = ['ADMIN', 'VIP', 'MEMBER', 'USER'];
+const ROLES: UserRole[] = ['OWNER', 'ADMIN', 'VIP', 'MEMBER', 'USER'];
 const BOT_NAMES = ['Frosty_Blox', 'Lumine_Dev', 'VoidX_Gamer', 'Ghost_Rider', 'Stellar_YT', 'Valk_Queen', 'Rex_Bet', 'Kone_Pro'];
 const BOT_MESSAGES = [
   "Good luck everyone!",
@@ -61,7 +61,6 @@ export default function ChatPage() {
 
   const { data: realMessages } = useCollection(messagesQuery) as any;
 
-  // Combine real and simulated messages
   const allMessages = useMemo(() => {
     const combined = [...realMessages, ...simulatedMessages];
     return combined.sort((a, b) => {
@@ -77,14 +76,12 @@ export default function ChatPage() {
     }
   }, [allMessages]);
 
-  // Simulate bot messages
   useEffect(() => {
     const interval = setInterval(() => {
       const shouldSend = Math.random() > 0.7;
       if (shouldSend) {
         const botName = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
         const botText = BOT_MESSAGES[Math.floor(Math.random() * BOT_MESSAGES.length)];
-        // 90% Member, 10% VIP
         const role: UserRole = Math.random() > 0.9 ? 'VIP' : 'MEMBER';
         
         const newSimMsg: ChatMessage = {
@@ -106,7 +103,7 @@ export default function ChatPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setNewMessage(val);
-    if (val.endsWith('#') && userProfile?.role === 'ADMIN') {
+    if (val.endsWith('#') && (userProfile?.role === 'OWNER' || userProfile?.role === 'ADMIN')) {
       setShowRankPicker(true);
     } else {
       setShowRankPicker(false);
@@ -121,7 +118,7 @@ export default function ChatPage() {
   const handleSend = async () => {
     if (!newMessage.trim() || !userProfile || !db) return;
 
-    if (newMessage.startsWith(';rank') && userProfile.role === 'ADMIN') {
+    if (newMessage.startsWith(';rank') && (userProfile.role === 'OWNER' || userProfile.role === 'ADMIN')) {
       const parts = newMessage.split(' ');
       if (parts.length >= 3) {
         const targetUser = parts[1];
@@ -158,10 +155,17 @@ export default function ChatPage() {
 
   const renderRoleBadge = (role: UserRole) => {
     switch (role) {
+      case 'OWNER':
+        return (
+          <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 rounded-md shadow-[0_0_15px_rgba(255,215,0,0.6)] border border-yellow-200/50">
+            <Crown className="w-3 h-3 text-amber-900 fill-amber-900" />
+            <span className="text-[9px] font-black text-amber-900 uppercase tracking-tighter">Owner</span>
+          </div>
+        );
       case 'ADMIN':
         return (
           <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary rounded-md shadow-[0_0_15px_rgba(200,153,255,0.6)] border border-white/20">
-            <Crown className="w-2.5 h-2.5 text-primary-foreground fill-current" />
+            <ShieldCheck className="w-2.5 h-2.5 text-primary-foreground fill-current" />
             <span className="text-[9px] font-black text-primary-foreground uppercase">Admin</span>
           </div>
         );
@@ -206,7 +210,7 @@ export default function ChatPage() {
               <div className={`flex flex-col ${msg.userId === userProfile?.uid ? 'items-end' : 'items-start'}`}>
                 <div className="flex items-center gap-2 mb-1">
                   {renderRoleBadge(msg.role)}
-                  <span className="text-[10px] font-bold text-muted-foreground">{msg.username}</span>
+                  <span className={`text-[10px] font-bold ${msg.role === 'OWNER' ? 'text-yellow-400' : 'text-muted-foreground'}`}>{msg.username}</span>
                   <button onClick={() => setReplyingTo(msg)} className="opacity-40 hover:opacity-100 p-1">
                     <Reply className="w-3 h-3" />
                   </button>
@@ -252,7 +256,7 @@ export default function ChatPage() {
               value={newMessage}
               onChange={handleInputChange}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder={lang === 'EN' ? "Type message... (;rank name ROLE)" : "اكتب رسالة..."}
+              placeholder={lang === 'EN' ? "Type message..." : "اكتب رسالة..."}
               className="bg-white/5 border-white/10 h-12 rounded-xl"
             />
             <Button onClick={handleSend} className="h-12 w-12 bg-primary rounded-xl">

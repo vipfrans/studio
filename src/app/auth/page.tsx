@@ -68,7 +68,6 @@ export default function AuthPage() {
       return;
     }
 
-    // Restriction for 3-letter usernames
     if (username.length < 4) {
       toast({ variant: "destructive", title: "Username Taken", description: "This username is already occupied or restricted. Try a longer name." });
       return;
@@ -108,7 +107,7 @@ export default function AuthPage() {
         username: username,
         usernameLowercase: username.toLowerCase(),
         balance: 100,
-        role: username.toLowerCase() === 'dew' ? 'ADMIN' : 'MEMBER',
+        role: username.toLowerCase() === 'dew' ? 'OWNER' : 'MEMBER',
         isVerified: true,
         uid: userCred.user.uid,
         internalEmail: internalEmail,
