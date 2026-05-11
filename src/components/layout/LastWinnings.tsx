@@ -3,7 +3,18 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Rocket, Bomb, Coins, Box, Users } from 'lucide-react';
+import { Rocket, Bomb, Coins, Box, Users, MessageSquare } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface Winning {
   id: string;
@@ -21,10 +32,10 @@ const GAME_ICONS = {
 };
 
 export const LastWinnings = () => {
+  const router = useRouter();
   const [winnings, setWinnings] = useState<Winning[]>([]);
   const [onlinePlayers, setOnlinePlayers] = useState(74);
 
-  // Manage last winnings simulation
   useEffect(() => {
     const generateWinning = () => {
       const users = ['Frosty', 'Lumine', 'VoidX', 'Ghost', 'Stellar', 'Rex', 'Kone', 'Valk'];
@@ -48,28 +59,50 @@ export const LastWinnings = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Manage online players simulation
   useEffect(() => {
     const updateOnlinePlayers = () => {
       setOnlinePlayers(prev => {
-        const change = Math.floor(Math.random() * 7) - 3; // Change between -3 and +3
+        const change = Math.floor(Math.random() * 7) - 3;
         const newValue = prev + change;
-        // Keep within 68-85 range for realism
         return Math.max(68, Math.min(85, newValue));
       });
-
-      // Schedule next update between 10 and 15 seconds
       const nextTime = Math.floor(Math.random() * 5000) + 10000;
       setTimeout(updateOnlinePlayers, nextTime);
     };
-
     const initialTimeout = setTimeout(updateOnlinePlayers, 10000);
     return () => clearTimeout(initialTimeout);
   }, []);
 
   return (
     <div className="fixed bottom-0 left-0 right-0 h-20 glass-purple z-50 overflow-hidden flex items-center px-6 gap-6 border-t-2 border-primary/20 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-      <div className="flex-shrink-0 flex flex-col justify-center border-r border-white/10 pr-6 mr-6">
+      <div className="flex-shrink-0 flex flex-col justify-center border-r border-white/10 pr-6 mr-6 relative">
+        {/* Chat Entry Button */}
+        <div className="absolute -top-12 left-0 w-full">
+          <Dialog>
+            <DialogTrigger asChild>
+              <motion.button
+                whileHover={{ y: -2 }}
+                className="flex items-center gap-2 bg-primary/20 hover:bg-primary/30 border border-primary/40 px-3 py-1 rounded-t-xl text-[10px] font-black text-primary tracking-widest uppercase transition-colors"
+              >
+                <MessageSquare className="w-3 h-3" />
+                Community Chat
+              </motion.button>
+            </DialogTrigger>
+            <DialogContent className="glass-purple border-primary/20 text-white">
+              <DialogHeader>
+                <DialogTitle className="font-headline text-2xl font-black headline-gradient">LEAVING CASINO?</DialogTitle>
+                <DialogDescription className="text-muted-foreground pt-4">
+                  Are you sure you want to leave the gaming floor and head over to the global chat? You can return anytime.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button variant="ghost" onClick={() => {}} className="hover:bg-white/5">Stay Here</Button>
+                <Button onClick={() => router.push('/chat')} className="bg-primary text-primary-foreground font-bold">Go to Chat</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+
         <div className="flex items-center gap-3">
           <div className="w-3 h-3 rounded-full bg-success animate-pulse shadow-[0_0_10px_rgba(115,255,115,0.5)]" />
           <span className="font-headline font-black text-sm text-primary uppercase tracking-widest">Last Winnings</span>
