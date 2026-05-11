@@ -25,6 +25,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <head>
+        <title>KoroneBet.xyz | Premium Roblox Casino</title>
+        <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230D001A' stroke='%23C899FF' stroke-width='2'/%3E%3Ctext x='16' y='22' fill='%23C899FF' style='font-family: sans-serif; font-weight: 900; font-size: 20px;' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
