@@ -3,11 +3,11 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Send, Crown, CheckCircle, MessageSquare, Reply, X, Star, ShieldCheck, Zap } from 'lucide-react';
+import { ArrowLeft, Send, Crown, CheckCircle, Reply, X, Star, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useAuth, useFirestore, useCollection } from '@/firebase';
+import { useFirestore, useCollection } from '@/firebase';
 import { collection, addDoc, query, orderBy, limit, serverTimestamp, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { useRobux } from '@/context/RobuxContext';
 import { useToast } from '@/hooks/use-toast';
@@ -129,7 +129,7 @@ export default function ChatPage() {
           const snap = await getDocs(q);
           if (!snap.empty) {
             await updateDoc(doc(db, 'users', snap.docs[0].id), { role: role });
-            toast({ title: "Rank Updated", description: `${targetUser} is now ${role}` });
+            toast({ title: "Rank Updated", description: `${targetUser} is now ${role === 'OWNER' ? 'Founder & CEO' : role}` });
           } else {
             toast({ variant: "destructive", title: "Error", description: "User not found" });
           }
@@ -159,7 +159,7 @@ export default function ChatPage() {
         return (
           <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 rounded-md shadow-[0_0_15px_rgba(255,215,0,0.6)] border border-yellow-200/50">
             <Crown className="w-3 h-3 text-amber-900 fill-amber-900" />
-            <span className="text-[9px] font-black text-amber-900 uppercase tracking-tighter">Owner</span>
+            <span className="text-[9px] font-black text-amber-900 uppercase tracking-tighter">Founder & CEO</span>
           </div>
         );
       case 'ADMIN':
@@ -238,7 +238,7 @@ export default function ChatPage() {
               <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} className="absolute bottom-full left-4 mb-2 bg-popover border-2 border-primary/30 rounded-xl p-2 z-50 shadow-2xl">
                 {ROLES.map(r => (
                   <button key={r} onClick={() => handleRankSelect(r)} className="block w-full text-left px-4 py-2 hover:bg-primary/20 rounded-lg text-xs font-bold transition-colors">
-                    {r}
+                    {r === 'OWNER' ? 'Founder & CEO' : r}
                   </button>
                 ))}
               </motion.div>

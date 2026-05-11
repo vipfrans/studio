@@ -3,7 +3,7 @@
 
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { User, Settings, Shield, Target, TrendingUp, History, Coins, ArrowLeft, Check, Edit2, Loader2, Award, Camera, Crown } from 'lucide-react';
+import { Settings, Shield, Target, TrendingUp, History, ArrowLeft, Check, Loader2, Award, Camera, Crown } from 'lucide-react';
 import Link from 'next/link';
 import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,7 @@ export default function ProfilePage() {
     if (!trimmedName || userProfile.hasChangedUsername) return;
 
     if (trimmedName.length < 4) {
-      toast({ variant: "destructive", title: "Error", description: "Username is already taken or restricted." });
+      toast({ variant: "destructive", title: "Error", description: "Username is too short or taken." });
       return;
     }
 
@@ -77,6 +77,8 @@ export default function ProfilePage() {
     }
   };
 
+  const roleLabel = userProfile.role === 'OWNER' ? 'Founder & CEO' : userProfile.role;
+
   return (
     <div className={`max-w-6xl mx-auto px-4 py-8 sm:py-12 pb-32 ${lang === 'AR' ? 'rtl text-right' : ''}`}>
       <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary mb-8">
@@ -106,7 +108,9 @@ export default function ProfilePage() {
               {userProfile.role === 'ADMIN' && <Shield className="w-5 h-5 text-primary fill-primary/20" />}
               {userProfile.role === 'VIP' && <Award className="w-5 h-5 text-yellow-400" />}
             </div>
-            <p className={`text-xs font-black uppercase tracking-[0.2em] mb-6 ${userProfile.role === 'OWNER' ? 'text-yellow-400' : 'text-primary'}`}>{userProfile.role}</p>
+            <p className={`text-[10px] font-black uppercase tracking-[0.2em] mb-6 ${userProfile.role === 'OWNER' ? 'text-yellow-400' : 'text-primary'}`}>
+              {roleLabel}
+            </p>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-white/5 p-4 rounded-2xl border border-white/5">

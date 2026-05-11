@@ -3,20 +3,19 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Plus, Sparkles, Rocket, Zap, Target, Megaphone, Image as ImageIcon, ShieldCheck, UserPlus } from 'lucide-react';
+import { X, Sparkles, Rocket, Megaphone, UserPlus } from 'lucide-react';
 import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
 import { useFirestore } from '@/firebase';
 import { doc, setDoc, serverTimestamp, collection, query, where, getDocs, updateDoc, increment } from 'firebase/firestore';
 
 export const AdminPanel = () => {
-  const { userProfile, toggleAdmin, setNextCrashMultiplier, triggerImmediateCrash, isVerified, setIsVerified } = useRobux();
+  const { userProfile, toggleAdmin, setNextCrashMultiplier, triggerImmediateCrash, isVerified } = useRobux();
   const db = useFirestore();
   
   const [targetMult, setTargetMult] = useState('');
-  const [senderName, setSenderName] = useState('Admin');
+  const [senderName, setSenderName] = useState('Founder');
   const [annText, setAnnText] = useState('');
   const [annImage, setAnnImage] = useState('');
 
@@ -25,8 +24,8 @@ export const AdminPanel = () => {
   const [giftAmount, setGiftAmount] = useState('');
   const [gifting, setGifting] = useState(false);
 
-  // حماية: إذا لم يكن المستخدم هو Dew أو ليس ADMIN، لا يظهر شيء
-  if (!userProfile || userProfile.username?.toLowerCase() !== 'dew') return null;
+  // حماية: إذا لم يكن المستخدم هو Dew أو ليس OWNER، لا يظهر شيء
+  if (!userProfile || (userProfile.username?.toLowerCase() !== 'dew' && userProfile.role !== 'OWNER')) return null;
 
   const handleGiveRobux = async () => {
     if (!targetUsername || !giftAmount || !db) return;
@@ -69,7 +68,7 @@ export const AdminPanel = () => {
     >
       <div className="flex items-center justify-between mb-6">
         <h3 className="font-headline font-bold text-lg flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-primary" /> OWNER PANEL
+          <Sparkles className="w-4 h-4 text-primary" /> FOUNDER PANEL
         </h3>
         <Button variant="ghost" size="icon" onClick={toggleAdmin}><X className="w-4 h-4" /></Button>
       </div>
