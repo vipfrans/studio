@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "rocket",
+      "description": "3D Purple Rocket Illustration",
+      "imageUrl": "https://picsum.photos/seed/rocket-game-icon/600/600",
+      "imageHint": "3d rocket"
+    },
+    {
+      "id": "mines",
+      "description": "3D Explosive Mine Illustration",
+      "imageUrl": "https://picsum.photos/seed/mine-game-icon/600/600",
+      "imageHint": "3d bomb"
+    },
+    {
+      "id": "coinflip",
+      "description": "3D Gold Coin Illustration",
+      "imageUrl": "https://picsum.photos/seed/coin-game-icon/600/600",
+      "imageHint": "3d coin"
+    },
+    {
+      "id": "cases",
+      "description": "3D Mystery Loot Box Illustration",
+      "imageUrl": "https://picsum.photos/seed/case-game-icon/600/600",
+      "imageHint": "3d box"
+    }
+  ]
 }

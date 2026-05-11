@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -8,10 +9,10 @@ import { Progress } from '@/components/ui/progress';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const GAMES = [
-  { id: 'rocket', name: 'Rocket', icon: Rocket, color: '#C899FF', href: '/rocket', image: PlaceHolderImages.find(i => i.id === 'rocket')?.imageUrl },
-  { id: 'mines', name: 'Mines', icon: Bomb, color: '#FF99E6', href: '/mines', image: PlaceHolderImages.find(i => i.id === 'mines')?.imageUrl },
-  { id: 'coinflip', name: 'Coinflip', icon: Coins, color: '#73FF73', href: '/coinflip', image: PlaceHolderImages.find(i => i.id === 'coinflip')?.imageUrl },
-  { id: 'cases', name: 'Cases', icon: Box, color: '#FFFFFF', href: '/cases', image: PlaceHolderImages.find(i => i.id === 'cases')?.imageUrl },
+  { id: 'rocket', name: 'Rocket', icon: Rocket, color: '#C899FF', href: '/rocket' },
+  { id: 'mines', name: 'Mines', icon: Bomb, color: '#FF99E6', href: '/mines' },
+  { id: 'coinflip', name: 'Coinflip', icon: Coins, color: '#73FF73', href: '/coinflip' },
+  { id: 'cases', name: 'Cases', icon: Box, color: '#FFFFFF', href: '/cases' },
 ];
 
 export default function Home() {
@@ -84,44 +85,49 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {GAMES.map((game, idx) => (
-            <motion.div
-              key={game.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 + idx * 0.05 }}
-              whileHover={{ y: -8 }}
-              className="relative aspect-square rounded-[32px] overflow-hidden group cursor-pointer border border-white/5 hover:border-primary/50 transition-all shadow-lg"
-            >
-              <Link href={game.href}>
-                <div className="absolute inset-0 z-0">
-                  <img 
-                    src={game.image} 
-                    alt={game.name} 
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 brightness-[0.7] group-hover:brightness-[0.9]" 
-                    data-ai-hint={PlaceHolderImages.find(i => i.id === game.id)?.imageHint}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-80" />
-                </div>
-                
-                <div className="absolute inset-0 z-10 p-5 flex flex-col justify-between">
-                  <div className="flex justify-between items-start">
-                    <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/10 group-hover:border-primary transition-colors shadow-xl">
-                      <game.icon className="w-6 h-6 text-primary" />
-                    </div>
-                    <div className="px-3 py-1 bg-primary/20 backdrop-blur-md rounded-full border border-primary/30">
-                      <span className="text-[10px] font-black text-primary uppercase tracking-tighter">Live</span>
-                    </div>
+          {GAMES.map((game, idx) => {
+            const imageData = PlaceHolderImages.find(i => i.id === game.id);
+            return (
+              <motion.div
+                key={game.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 + idx * 0.05 }}
+                whileHover={{ y: -8 }}
+                className="relative aspect-square rounded-[32px] overflow-hidden group cursor-pointer border border-white/5 hover:border-primary/50 transition-all shadow-lg"
+              >
+                <Link href={game.href}>
+                  <div className="absolute inset-0 z-0">
+                    {imageData && (
+                      <img 
+                        src={imageData.imageUrl} 
+                        alt={game.name} 
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 brightness-[0.7] group-hover:brightness-[0.9]" 
+                        data-ai-hint={imageData.imageHint}
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-80" />
                   </div>
                   
-                  <div className="translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                    <h3 className="text-2xl font-headline font-black group-hover:text-primary transition-colors drop-shadow-lg">{game.name}</h3>
-                    <p className="text-xs text-muted-foreground font-medium group-hover:text-white/80 transition-colors">Play & Win Big</p>
+                  <div className="absolute inset-0 z-10 p-5 flex flex-col justify-between">
+                    <div className="flex justify-between items-start">
+                      <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/10 group-hover:border-primary transition-colors shadow-xl">
+                        <game.icon className="w-6 h-6 text-primary" />
+                      </div>
+                      <div className="px-3 py-1 bg-primary/20 backdrop-blur-md rounded-full border border-primary/30">
+                        <span className="text-[10px] font-black text-primary uppercase tracking-tighter">Live</span>
+                      </div>
+                    </div>
+                    
+                    <div className="translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                      <h3 className="text-2xl font-headline font-black group-hover:text-primary transition-colors drop-shadow-lg">{game.name}</h3>
+                      <p className="text-xs text-muted-foreground font-medium group-hover:text-white/80 transition-colors">Play & Win Big</p>
+                    </div>
                   </div>
-                </div>
-              </Link>
-            </motion.div>
-          ))}
+                </Link>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </div>

@@ -3,7 +3,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { RobuxProvider } from '@/context/RobuxContext';
 import { Navbar } from '@/components/layout/Navbar';
-import { LiveWinnings } from '@/components/layout/LiveWinnings';
+import { LastWinnings } from '@/components/layout/LastWinnings';
 import { SnowParticles } from '@/components/effects/SnowParticles';
 
 export const metadata: Metadata = {
@@ -30,7 +30,7 @@ export default function RootLayout({
           <main className="flex-1 relative z-10">
             {children}
           </main>
-          <LiveWinnings />
+          <LastWinnings />
         </RobuxProvider>
       </body>
     </html>
