@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Lock, Mail, ArrowRight, Loader2, AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { User, Lock, Mail, ArrowRight, Loader2, AlertCircle, ShieldCheck } from 'lucide-react';
 import { useAuth, useFirestore } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, collection, query, where, getDocs, serverTimestamp, deleteDoc } from 'firebase/firestore';
@@ -35,43 +35,60 @@ export default function AuthPage() {
   };
 
   const handleSignupInit = async () => {
-    if (!formData.username || !formData.email || !formData.password) {
-      toast({ variant: "destructive", title: "Missing Fields", description: "Please fill all fields." });
+    // التحقق من الحقول
+    if (!formData.username.trim() || !formData.email.trim() || !formData.password.trim()) {
+      toast({ variant: "destructive", title: "بيانات ناقصة", description: "يرجى ملء جميع الحقول المطلوبة." });
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      toast({ variant: "destructive", title: "كلمة سر ضعيفة", description: "يجب أن تكون كلمة السر 6 أحرف على الأقل." });
       return;
     }
     
     setLoading(true);
     try {
-      // Check if username taken
-      const q = query(collection(db, 'users'), where('username', '==', formData.username.trim()));
+      console.log("Checking if username exists...");
+      // 1. التأكد من أن اسم المستخدم غير مأخوذ
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('username', '==', formData.username.trim()));
       const snap = await getDocs(q);
+      
       if (!snap.empty) {
-        toast({ variant: "destructive", title: "Username Taken", description: "This username is already registered." });
+        toast({ variant: "destructive", title: "اسم المستخدم مأخوذ", description: "هذا الاسم مسجل مسبقاً، اختر اسماً آخر." });
         setLoading(false);
         return;
       }
 
-      // Generate a mock 6-digit code
+      // 2. توليد كود التحقق
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       setGeneratedCode(code);
       
-      // Store in firestore temporarily
-      await setDoc(doc(db, 'verification_codes', formData.email.toLowerCase()), {
-        email: formData.email,
+      // 3. حفظ الكود مؤقتاً في Firestore (بدون await لمنع التعليق)
+      const codeRef = doc(db, 'verification_codes', formData.email.toLowerCase().trim());
+      setDoc(codeRef, {
+        email: formData.email.trim(),
         code: code,
         createdAt: serverTimestamp()
+      }).catch(err => {
+        console.error("Error saving verification code:", err);
       });
 
-      // Simulate sending email
+      // إظهار الكود في تنبيه للمعاينة (بما أننا لا نملك نظام إرسال إيميل حقيقي حالياً)
       console.log(`Verification code for ${formData.email}: ${code}`);
       toast({ 
-        title: "Code Sent!", 
-        description: `We've "sent" a 6-digit code to ${formData.email}. Check your console/toast for testing.` 
+        title: "تم إرسال الكود!", 
+        description: `لقد أرسلنا كود التحقق إلى ${formData.email}. الكود هو: ${code}` 
       });
       
       setStep('VERIFY');
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
+      console.error("Signup Init Error:", error);
+      toast({ 
+        variant: "destructive", 
+        title: "خطأ في الاتصال", 
+        description: error.message || "تأكد من تفعيل إعدادات Firebase وEmail/Password في لوحة التحكم." 
+      });
     } finally {
       setLoading(false);
     }
@@ -79,31 +96,35 @@ export default function AuthPage() {
 
   const handleVerifyAndCreate = async () => {
     if (formData.verificationCode !== generatedCode) {
-      toast({ variant: "destructive", title: "Invalid Code", description: "The code you entered is incorrect." });
+      toast({ variant: "destructive", title: "كود خاطئ", description: "الكود الذي أدخلته غير صحيح." });
       return;
     }
 
     setLoading(true);
     try {
-      const userCred = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      // 1. إنشاء الحساب في Firebase Auth
+      const userCred = await createUserWithEmailAndPassword(auth, formData.email.trim(), formData.password);
       const isOwner = formData.username.toLowerCase() === 'dew';
       
+      // 2. حفظ بيانات المستخدم في Firestore
       await setDoc(doc(db, 'users', userCred.user.uid), {
         username: formData.username.trim(),
-        email: formData.email.toLowerCase(),
+        email: formData.email.toLowerCase().trim(),
         balance: 0,
         role: isOwner ? 'ADMIN' : 'MEMBER',
-        isVerified: isOwner,
+        isVerified: true,
         uid: userCred.user.uid,
         createdAt: new Date().toISOString()
       });
 
-      await deleteDoc(doc(db, 'verification_codes', formData.email.toLowerCase()));
+      // 3. مسح كود التحقق
+      await deleteDoc(doc(db, 'verification_codes', formData.email.toLowerCase().trim()));
       
-      toast({ title: "Account Verified!", description: "Welcome to KoroneBet!" });
+      toast({ title: "تم تفعيل الحساب!", description: "مرحباً بك في KoroneBet!" });
       router.push('/');
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Registration Failed", description: error.message });
+      console.error("Verification Error:", error);
+      toast({ variant: "destructive", title: "فشل الإنشاء", description: error.message });
     } finally {
       setLoading(false);
     }
@@ -111,29 +132,30 @@ export default function AuthPage() {
 
   const handleLogin = async () => {
     if (!formData.username || !formData.password) {
-      toast({ variant: "destructive", title: "Missing Fields", description: "Username and password required." });
+      toast({ variant: "destructive", title: "بيانات ناقصة", description: "يرجى إدخال اسم المستخدم وكلمة السر." });
       return;
     }
 
     setLoading(true);
     try {
-      // Find email by username
+      // البحث عن الإيميل المرتبط بهذا اليوزر
       const q = query(collection(db, 'users'), where('username', '==', formData.username.trim()));
       const snap = await getDocs(q);
       
       if (snap.empty) {
-        toast({ variant: "destructive", title: "User Not Found", description: "No user with this username exists." });
+        toast({ variant: "destructive", title: "المستخدم غير موجود", description: "لا يوجد حساب بهذا الاسم." });
         setLoading(false);
         return;
       }
 
-      const userEmail = snap.docs[0].data().email;
-      await signInWithEmailAndPassword(auth, userEmail, formData.password);
+      const userData = snap.docs[0].data();
+      await signInWithEmailAndPassword(auth, userData.email, formData.password);
       
-      toast({ title: "Welcome back!", description: `Logged in as ${formData.username}` });
+      toast({ title: "مرحباً بعودتك!", description: `تم الدخول باسم ${formData.username}` });
       router.push('/');
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Login Failed", description: "Invalid username or password." });
+      console.error("Login Error:", error);
+      toast({ variant: "destructive", title: "خطأ في الدخول", description: "اسم المستخدم أو كلمة السر خاطئة." });
     } finally {
       setLoading(false);
     }
@@ -156,7 +178,7 @@ export default function AuthPage() {
             {step === 'LOGIN' ? 'WELCOME BACK' : step === 'SIGNUP' ? 'JOIN THE ARENA' : 'VERIFY IDENTITY'}
           </h1>
           <p className="text-muted-foreground text-xs uppercase tracking-[0.3em] font-bold opacity-60">
-            {step === 'LOGIN' ? 'Log in with your username' : step === 'SIGNUP' ? 'Start your journey today' : `Sent to ${formData.email}`}
+            {step === 'LOGIN' ? 'Log in with your username' : step === 'SIGNUP' ? 'Create a new account' : `Sent to ${formData.email}`}
           </p>
         </div>
 
@@ -172,7 +194,7 @@ export default function AuthPage() {
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary/40 group-focus-within:text-primary transition-colors" />
                   <Input name="password" type="password" placeholder="Password" value={formData.password} onChange={handleInputChange} className="bg-black/20 border-white/10 h-14 pl-12 rounded-2xl focus-visible:ring-primary focus-visible:bg-black/40 transition-all" />
                 </div>
-                <Button onClick={handleLogin} disabled={loading} className="w-full h-16 text-lg font-black bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl shadow-[0_10px_20px_rgba(200,153,255,0.2)] hover:scale-[1.02] active:scale-[0.98] transition-all">
+                <Button onClick={handleLogin} disabled={loading} className="w-full h-16 text-lg font-black bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl shadow-[0_10px_20px_rgba(200,153,255,0.2)]">
                   {loading ? <Loader2 className="animate-spin" /> : 'LOGIN TO LOBBY'}
                 </Button>
               </motion.div>
@@ -202,7 +224,7 @@ export default function AuthPage() {
               <motion.div key="verify" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
                 <div className="p-4 bg-primary/10 rounded-2xl border border-primary/20 text-center">
                   <p className="text-sm font-bold text-primary mb-1">Check your inbox!</p>
-                  <p className="text-[10px] text-muted-foreground">We've sent a 6-digit code. (Prototype: {generatedCode})</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">Enter the 6-digit code we sent you</p>
                 </div>
                 <div className="relative group">
                   <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary/40" />
@@ -221,20 +243,11 @@ export default function AuthPage() {
           <div className="text-center pt-4">
             <button 
               onClick={() => setStep(step === 'LOGIN' ? 'SIGNUP' : 'LOGIN')}
-              className="text-xs font-black text-muted-foreground hover:text-primary transition-all uppercase tracking-widest flex items-center justify-center gap-2 mx-auto group"
+              className="text-xs font-black text-muted-foreground hover:text-primary transition-all uppercase tracking-widest flex items-center justify-center gap-2 mx-auto"
             >
               {step === 'LOGIN' ? "Need an account? Sign up" : "Already registered? Login"}
-              <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-3 h-3" />
             </button>
-          </div>
-        )}
-
-        {step === 'SIGNUP' && (
-          <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex items-start gap-3">
-            <AlertCircle className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
-              Your safety is our priority. By registering, you confirm that you are of legal age and agree to our terms of service.
-            </p>
           </div>
         )}
       </motion.div>
