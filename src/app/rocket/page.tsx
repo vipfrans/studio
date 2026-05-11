@@ -286,23 +286,23 @@ export default function RocketPage() {
             <AnimatePresence>
               {gameState === 'flying' && (
                 <motion.div
-                  initial={{ x: -200, y: 200, opacity: 0, rotate: 45 }}
+                  initial={{ y: 300, opacity: 0, scale: 0.5 }}
                   animate={{ 
-                    x: [0, -5, 5, 0], 
-                    y: [0, 5, -5, 0], 
-                    opacity: 0.35,
-                    rotate: [45, 43, 47, 45],
+                    y: [300, 0, -10, 10, 0], 
+                    opacity: 0.2,
+                    scale: 1,
                   }}
-                  exit={{ opacity: 0, scale: 0.5, y: -200, x: 200 }}
+                  exit={{ opacity: 0, scale: 2, filter: 'blur(20px)' }}
                   transition={{ 
-                    x: { repeat: Infinity, duration: 2, ease: "easeInOut" },
-                    y: { repeat: Infinity, duration: 2.5, ease: "easeInOut" },
-                    rotate: { repeat: Infinity, duration: 0.8 },
-                    opacity: { duration: 0.5 }
+                    y: { duration: 1.5, times: [0, 0.6, 0.7, 0.85, 1], ease: "easeOut" },
+                    opacity: { duration: 0.8 }
                   }}
                   className="absolute pointer-events-none z-0"
                 >
-                  <RocketIcon className="w-48 h-48 sm:w-64 sm:h-64 text-primary fill-primary/20 drop-shadow-[0_0_30px_rgba(200,153,255,0.4)]" />
+                  <div className="relative">
+                    <RocketIcon className="w-56 h-56 sm:w-80 sm:h-80 text-primary fill-primary/5 drop-shadow-[0_0_60px_rgba(200,153,255,0.2)]" />
+                    <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-32 h-32 bg-primary/20 blur-[60px] rounded-full animate-pulse" />
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
