@@ -4,26 +4,26 @@
     {
       "id": "rocket",
       "description": "3D Rocket Ship Launch Illustration",
-      "imageUrl": "https://picsum.photos/seed/roblox-rocket-3d/600/600",
+      "imageUrl": "https://picsum.photos/seed/rocket-3d-icon/600/600",
       "imageHint": "3d rocket"
     },
     {
       "id": "mines",
-      "description": "Custom Mines Bomb Illustration",
+      "description": "3D Explosive Naval Mine Illustration",
       "imageUrl": "https://cdn.discordapp.com/attachments/1502024701365588140/1503295943154339840/IMG_0443.webp?ex=6a02d4f2&is=6a018372&hm=4e482dc971b95fb26b6b66c4b97df59dda8fadb4b06ad43c977b3376f927630e&",
-      "imageHint": "bomb mine"
+      "imageHint": "3d bomb"
     },
     {
       "id": "coinflip",
       "description": "3D Shiny Gold Coin Illustration",
-      "imageUrl": "https://picsum.photos/seed/shiny-gold-coin-3d/600/600",
+      "imageUrl": "https://picsum.photos/seed/coin-3d-icon/600/600",
       "imageHint": "3d coin"
     },
     {
       "id": "cases",
-      "description": "3D Mystery Loot Chest Illustration",
-      "imageUrl": "https://picsum.photos/seed/mystery-box-3d/600/600",
-      "imageHint": "3d box"
+      "description": "Cases Game Illustration",
+      "imageUrl": "https://cdn.discordapp.com/attachments/1502024701365588140/1503296382092709908/IMG_0442.webp?ex=6a02d55b&is=6a0183db&hm=68c59aa3fe4b3ad3dca2edc8315d12a7adb3e1c659a560e7b2aed98c02e86fd5&",
+      "imageHint": "loot box"
     }
   ]
 }
