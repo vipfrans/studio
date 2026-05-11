@@ -4,25 +4,25 @@
     {
       "id": "rocket",
       "description": "3D Rocket Ship Launch Illustration",
-      "imageUrl": "https://picsum.photos/seed/rocket-game-3d/600/600",
+      "imageUrl": "https://cdn.discordapp.com/attachments/1502024701365588140/1503300389783470182/IMG_0445.jpg?ex=6a02d916&is=6a018796&hm=f1d9600c17aaf1cf734f82636918a40a7568b98a6a9e8aefb43e5a354cb6f7ff&",
       "imageHint": "3d rocket"
     },
     {
       "id": "mines",
       "description": "3D Explosive Naval Mine Illustration",
-      "imageUrl": "https://cdn.discordapp.com/attachments/1502024701365588140/1503295943154339840/IMG_0443.webp",
+      "imageUrl": "https://cdn.discordapp.com/attachments/1502024701365588140/1503295943154339840/IMG_0443.webp?ex=6a02d4f2&is=6a018372&hm=4e482dc971b95fb26b6b66c4b97df59dda8fadb4b06ad43c977b3376f927630e&",
       "imageHint": "3d bomb"
     },
     {
       "id": "coinflip",
       "description": "3D Shiny Gold Coin Illustration",
-      "imageUrl": "https://picsum.photos/seed/coin-3d-icon/600/600",
+      "imageUrl": "https://cdn.discordapp.com/attachments/1502024701365588140/1503300389494067240/IMG_0446.jpg?ex=6a02d916&is=6a018796&hm=de23802b724f3cd0c56aeeef084786f9467378ebcf5dc074b7fb681f4b45dfd",
       "imageHint": "3d coin"
     },
     {
       "id": "cases",
       "description": "3D Mystery Loot Chest Illustration",
-      "imageUrl": "https://cdn.discordapp.com/attachments/1502024701365588140/1503296382092709908/IMG_0442.webp",
+      "imageUrl": "https://cdn.discordapp.com/attachments/1502024701365588140/1503296382092709908/IMG_0442.webp?ex=6a02d55b&is=6a0183db&hm=68c59aa3fe4b3ad3dca2edc8315d12a7adb3e1c659a560e7b2aed98c02e86fd5&",
       "imageHint": "3d box"
     }
   ]

@@ -94,7 +94,7 @@ export default function Home() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2 + idx * 0.05 }}
                 whileHover={{ y: -8 }}
-                className="relative aspect-square rounded-[32px] overflow-hidden group cursor-pointer border border-white/5 hover:border-primary/50 transition-all shadow-lg"
+                className="relative aspect-square rounded-[32px] overflow-hidden group cursor-pointer border-2 border-primary/10 hover:border-primary transition-all shadow-lg"
               >
                 <Link href={game.href}>
                   <div className="absolute inset-0 z-0">
@@ -102,26 +102,28 @@ export default function Home() {
                       <img 
                         src={imageData.imageUrl} 
                         alt={game.name} 
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 brightness-[0.7] group-hover:brightness-[0.9]" 
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 brightness-[0.8] group-hover:brightness-[1]" 
                         data-ai-hint={imageData.imageHint}
                       />
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent" />
                   </div>
                   
                   <div className="absolute inset-0 z-10 p-6 flex flex-col justify-between">
                     <div className="flex justify-between items-start">
-                      <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/10 group-hover:border-primary transition-colors shadow-xl">
-                        <game.icon className="w-6 h-6 text-primary" />
+                      <div className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/10 group-hover:border-primary transition-colors">
+                        <game.icon className="w-5 h-5 text-primary" />
                       </div>
-                      <div className="px-3 py-1 bg-primary/20 backdrop-blur-md rounded-full border border-primary/30">
-                        <span className="text-[10px] font-black text-primary uppercase tracking-tighter">New</span>
-                      </div>
+                      {game.id === 'cases' && (
+                        <div className="px-3 py-1 bg-accent/20 backdrop-blur-md rounded-full border border-accent/30">
+                          <span className="text-[10px] font-black text-accent uppercase tracking-tighter">Soon</span>
+                        </div>
+                      )}
                     </div>
                     
-                    <div className="translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                      <h3 className="text-2xl font-headline font-black group-hover:text-primary transition-colors drop-shadow-lg">{game.name}</h3>
-                      <p className="text-xs text-muted-foreground font-medium group-hover:text-white/80 transition-colors">Play Now</p>
+                    <div>
+                      <h3 className="text-2xl font-headline font-black text-white drop-shadow-lg">{game.name}</h3>
+                      <p className="text-xs text-primary font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Play Now</p>
                     </div>
                   </div>
                 </Link>
