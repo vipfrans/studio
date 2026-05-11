@@ -30,6 +30,12 @@ const MESSAGES_POOL = [
   "I'm 99% sure half of this chat is bots. Prove me wrong.",
   "Does anyone have a strategy for 3 bombs in Mines?",
   "Imagine being a bot and not winning. That would be sad.",
+  "Yo Admin, add a global leaderboard! I want to flex my wins.",
+  "Wait, I just saw a message that looked way too human for an AI...",
+  "If I lose one more coinflip, I'm going to sleep and never coming back lol",
+  "Admin, the rocket animation is fire 🔥 keep it up!",
+  "Anyone want to trade some luck? I'm on a 10-game losing streak.",
+  "Is it just me or does the rocket always crash when I bet high?",
 ];
 
 interface ChatMessage {
@@ -45,6 +51,7 @@ export default function ChatPage() {
   const [newMessage, setNewMessage] = useState('');
   const [chatOnline, setChatOnline] = useState(15);
   const [typingUser, setTypingUser] = useState<string | null>(null);
+  const [isAdminTyping, setIsAdminTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -71,11 +78,15 @@ export default function ChatPage() {
           text: MESSAGES_POOL[Math.floor(Math.random() * MESSAGES_POOL.length)],
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         };
-        setMessages(prev => [...prev, msg].slice(-25));
+        setMessages(prev => {
+          // Avoid immediate repetition
+          if (prev.length > 0 && prev[prev.length - 1].text === msg.text) return prev;
+          return [...prev, msg].slice(-25);
+        });
         setTypingUser(null);
-      }, 2000); // Wait 2 seconds while "typing"
+      }, 2000); 
       
-    }, 5000);
+    }, 5000 + Math.random() * 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -93,7 +104,16 @@ export default function ChatPage() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, typingUser]);
+  }, [messages, typingUser, isAdminTyping]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    if (e.target.value.length > 0) {
+      setIsAdminTyping(true);
+    } else {
+      setIsAdminTyping(false);
+    }
+  };
 
   const handleSend = () => {
     if (!newMessage.trim()) return;
@@ -106,6 +126,7 @@ export default function ChatPage() {
     };
     setMessages(prev => [...prev, msg]);
     setNewMessage('');
+    setIsAdminTyping(false);
   };
 
   return (
@@ -170,13 +191,13 @@ export default function ChatPage() {
             ))}
           </AnimatePresence>
           
-          {typingUser && (
+          {(typingUser || isAdminTyping) && (
             <motion.div 
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
               className="flex items-center gap-2 text-[10px] text-primary/60 italic ml-1"
             >
-              <span className="font-bold">{typingUser}</span> is typing
+              <span className="font-bold">{isAdminTyping ? 'Admin' : typingUser}</span> is typing
               <div className="flex">
                 <motion.div animate={{ opacity: [0.2, 1, 0.2] }} transition={{ repeat: Infinity, duration: 1 }}><Dot className="w-4 h-4 -mx-1" /></motion.div>
                 <motion.div animate={{ opacity: [0.2, 1, 0.2] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }}><Dot className="w-4 h-4 -mx-1" /></motion.div>
@@ -190,7 +211,7 @@ export default function ChatPage() {
           <div className="relative flex items-center gap-2 sm:gap-3">
             <Input 
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={handleInputChange}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Join the conversation..."
               className="bg-white/5 border-white/10 h-12 sm:h-14 rounded-xl sm:rounded-2xl pl-4 sm:pl-6 pr-14 focus-visible:ring-primary focus-visible:border-primary/50 text-sm sm:text-base"
