@@ -57,7 +57,7 @@ export const Navbar = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setIsBalanceMenuOpen(!isBalanceMenuOpen)}
-              className="flex items-center gap-2 px-4 py-2 glass-purple rounded-full cursor-pointer hover:bg-primary/10 transition-colors border border-primary/20"
+              className="flex items-center gap-2 px-4 py-2 glass-purple rounded-full cursor-pointer hover:bg-primary/10 transition-colors border border-primary/20 z-50"
             >
               <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
                 <span className="text-xs font-bold text-primary">R$</span>
@@ -75,26 +75,26 @@ export const Navbar = () => {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
                   transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="absolute top-full mt-3 right-0 w-56 glass-purple border-primary/20 rounded-2xl p-2 shadow-2xl z-50 overflow-hidden"
+                  className="absolute top-full mt-3 right-0 w-64 bg-background/95 backdrop-blur-2xl border-2 border-primary/30 rounded-2xl p-2 shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-[60] overflow-hidden"
                 >
                   <button
                     onClick={() => { handleDeposit(); setIsBalanceMenuOpen(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-primary/10 rounded-xl transition-colors text-sm font-bold text-primary"
+                    className="w-full flex items-center gap-3 px-4 py-4 hover:bg-primary/20 rounded-xl transition-all text-sm font-black text-primary group"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-                      <CreditCard className="w-4 h-4" />
+                    <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <CreditCard className="w-5 h-5" />
                     </div>
-                    Deposit
+                    DEPOSIT
                   </button>
                   <div className="h-px bg-primary/10 mx-2 my-1" />
                   <button
                     onClick={() => { handleWithdraw(); setIsBalanceMenuOpen(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent/10 rounded-xl transition-colors text-sm font-bold text-accent"
+                    className="w-full flex items-center gap-3 px-4 py-4 hover:bg-accent/20 rounded-xl transition-all text-sm font-black text-accent group"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center">
-                      <ArrowDownToLine className="w-4 h-4" />
+                    <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <ArrowDownToLine className="w-5 h-5" />
                     </div>
-                    Withdrawal
+                    WITHDRAWAL
                   </button>
                 </motion.div>
               )}
