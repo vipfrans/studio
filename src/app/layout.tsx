@@ -5,6 +5,7 @@ import { RobuxProvider } from '@/context/RobuxContext';
 import { Navbar } from '@/components/layout/Navbar';
 import { LastWinnings } from '@/components/layout/LastWinnings';
 import { SnowParticles } from '@/components/effects/SnowParticles';
+import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
   title: 'KoroneBet.xyz | Premium Robux Betting',
@@ -31,6 +32,7 @@ export default function RootLayout({
             {children}
           </main>
           <LastWinnings />
+          <Toaster />
         </RobuxProvider>
       </body>
     </html>

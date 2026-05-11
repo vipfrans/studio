@@ -1,12 +1,13 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Rocket, Bomb, Coins, Box, Trophy, Gift, TrendingUp } from 'lucide-react';
+import { Rocket, Bomb, Coins, Box, Trophy, Gift, TrendingUp, AlertCircle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { useToast } from "@/hooks/use-toast";
 
 const GAMES = [
   { id: 'rocket', name: 'Rocket', icon: Rocket, color: '#C899FF', href: '/rocket' },
@@ -16,6 +17,30 @@ const GAMES = [
 ];
 
 export default function Home() {
+  const { toast } = useToast();
+  const [claimStatus, setClaimStatus] = useState('CLAIM NOW');
+
+  const handleClaim = () => {
+    if (claimStatus === 'Error !') return;
+
+    setClaimStatus('Error !');
+    
+    toast({
+      variant: "destructive",
+      title: (
+        <div className="flex items-center gap-2">
+          <AlertCircle className="w-5 h-5" />
+          <span>Warning</span>
+        </div>
+      ) as any,
+      description: "This Event Was Not Started",
+    });
+
+    setTimeout(() => {
+      setClaimStatus('CLAIM NOW');
+    }, 2000);
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-6 pt-8 pb-32">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
@@ -67,8 +92,15 @@ export default function Home() {
             <span className="text-sm text-muted-foreground text-center">Your daily chest is ready to be opened!</span>
             <span className="text-2xl font-headline font-bold text-accent">R$ 50 - 5,000</span>
           </div>
-          <button className="w-full mt-4 py-3 bg-accent text-accent-foreground font-bold rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all">
-            CLAIM NOW
+          <button 
+            onClick={handleClaim}
+            className={`w-full mt-4 py-3 font-bold rounded-xl transition-all ${
+              claimStatus === 'Error !' 
+                ? 'bg-red-500/20 text-red-500 border border-red-500/50' 
+                : 'bg-accent text-accent-foreground hover:scale-[1.02] active:scale-[0.98]'
+            }`}
+          >
+            {claimStatus}
           </button>
         </motion.div>
       </div>
