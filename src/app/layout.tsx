@@ -1,7 +1,7 @@
 
 "use client";
 
-import type {Metadata} from 'next';
+import React from 'react';
 import './globals.css';
 import { RobuxProvider } from '@/context/RobuxContext';
 import { Navbar } from '@/components/layout/Navbar';
@@ -14,8 +14,8 @@ import { MaintenanceOverlay } from '@/components/MaintenanceOverlay';
 
 const { firebaseApp, firestore, auth } = initializeFirebase();
 
-// اجعل هذه القيمة true لتفعيل وضع الصيانة، و false لإلغائه
-const IS_MAINTENANCE = true;
+// وضع الصيانة الآن FALSE كما طلبت
+const IS_MAINTENANCE = false;
 
 export default function RootLayout({
   children,

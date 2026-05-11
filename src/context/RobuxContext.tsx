@@ -1,10 +1,14 @@
 
 "use client";
 
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import { useAuth, useFirestore, useDoc } from '@/firebase';
+import { doc, setDoc, updateDoc, increment } from 'firebase/firestore';
 
 interface RobuxContextType {
   balance: number;
+  userProfile: any;
+  loading: boolean;
   addRobux: (amount: number) => void;
   removeRobux: (amount: number) => void;
   isAdminOpen: boolean;
@@ -14,33 +18,72 @@ interface RobuxContextType {
   // Rocket Controls
   nextCrashMultiplier: number | null;
   setNextCrashMultiplier: (val: number | null) => void;
-  forceCrashTrigger: number; // Timestamp to trigger immediate crash
+  forceCrashTrigger: number;
   triggerImmediateCrash: () => void;
 }
 
 const RobuxContext = createContext<RobuxContextType | undefined>(undefined);
 
 export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [balance, setBalance] = useState(1000);
+  const auth = useAuth();
+  const db = useFirestore();
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, [auth]);
+
+  const userDocRef = useMemo(() => {
+    if (!db || !currentUser) return null;
+    return doc(db, 'users', currentUser.uid);
+  }, [db, currentUser]);
+
+  const { data: profile, loading } = useDoc(userDocRef);
+
   const [isAdminOpen, setIsAdminOpen] = useState(false);
-  const [isVerified, setIsVerified] = useState(true);
+  const [isVerified, setIsVerified] = useState(false);
   const [nextCrashMultiplier, setNextCrashMultiplier] = useState<number | null>(null);
   const [forceCrashTrigger, setForceCrashTrigger] = useState(0);
 
-  const addRobux = (amount: number) => setBalance(prev => prev + amount);
-  const removeRobux = (amount: number) => setBalance(prev => Math.max(0, prev - amount));
+  // Sync isVerified with profile
+  useEffect(() => {
+    if (profile) {
+      setIsVerified(profile.isVerified || false);
+    }
+  }, [profile]);
+
+  const addRobux = (amount: number) => {
+    if (!userDocRef) return;
+    updateDoc(userDocRef, { balance: increment(amount) });
+  };
+
+  const removeRobux = (amount: number) => {
+    if (!userDocRef) return;
+    updateDoc(userDocRef, { balance: increment(-amount) });
+  };
+
   const toggleAdmin = () => setIsAdminOpen(prev => !prev);
   const triggerImmediateCrash = () => setForceCrashTrigger(Date.now());
+
+  const balance = profile?.balance ?? 0;
 
   return (
     <RobuxContext.Provider value={{ 
       balance, 
+      userProfile: profile,
+      loading,
       addRobux, 
       removeRobux, 
       isAdminOpen, 
       toggleAdmin,
       isVerified,
-      setIsVerified,
+      setIsVerified: (val: boolean) => {
+        setIsVerified(val);
+        if (userDocRef) updateDoc(userDocRef, { isVerified: val });
+      },
       nextCrashMultiplier,
       setNextCrashMultiplier,
       forceCrashTrigger,

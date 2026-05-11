@@ -1,53 +1,69 @@
 
 {
   "entities": {
-    "Announcement": {
-      "title": "Announcement",
-      "description": "A global broadcast message displayed to all users.",
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "بيانات المستخدم الأساسية والرصيد.",
       "type": "object",
       "properties": {
-        "senderName": {
-          "type": "string",
-          "description": "The name of the person sending the announcement."
-        },
-        "text": {
-          "type": "string",
-          "description": "The message content of the announcement."
-        },
-        "imageUrl": {
-          "type": "string",
-          "description": "Optional image URL to display with the announcement."
-        },
-        "isVerified": {
-          "type": "boolean",
-          "description": "Whether the sender should display a verification badge."
-        },
-        "active": {
-          "type": "boolean",
-          "description": "Whether this announcement is currently active."
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Timestamp of when the announcement was created."
+        "username": { "type": "string" },
+        "balance": { "type": "number" },
+        "role": { "type": "string", "enum": ["ADMIN", "VIP", "MEMBER"] },
+        "isVerified": { "type": "boolean" },
+        "uid": { "type": "string" }
+      },
+      "required": ["username", "balance", "role"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "إعلان عالمي يظهر لجميع المستخدمين.",
+      "type": "object",
+      "properties": {
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "isVerified": { "type": "boolean" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["senderName", "text", "active"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "رسالة في الدردشة الحقيقية.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "username": { "type": "string" },
+        "text": { "type": "string" },
+        "role": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "replyTo": {
+          "type": "object",
+          "properties": {
+            "username": { "type": "string" },
+            "text": { "type": "string" }
+          }
         }
       },
-      "required": [
-        "senderName",
-        "text",
-        "active"
-      ]
+      "required": ["userId", "username", "text", "role", "createdAt"]
     }
   },
   "auth": {
-    "providers": [
-      "google"
-    ]
+    "providers": ["password"]
   },
   "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "ملفات المستخدمين."
+    },
     "/announcements/{announcementId}": {
       "schema": "Announcement",
-      "description": "Collection of global announcements."
+      "description": "الإعلانات العالمية."
+    },
+    "/chat_messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "رسائل الدردشة الحقيقية."
     }
   }
 }
