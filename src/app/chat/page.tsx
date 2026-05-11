@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Send, Users, Crown, ShieldCheck, MessageSquare, Dot, Reply, X } from 'lucide-react';
+import { ArrowLeft, Send, Users, Crown, ShieldCheck, MessageSquare, Dot, Reply, X, Star, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,9 +51,12 @@ const REPLY_TEMPLATES = [
   "Actually, I think @{user} is right about the strategy.",
 ];
 
+type UserRole = 'ADMIN' | 'VIP' | 'MEMBER' | 'USER';
+
 interface ChatMessage {
   id: string;
   user: string;
+  role: UserRole;
   text: string;
   time: string;
   isAdmin?: boolean;
@@ -73,12 +76,17 @@ export default function ChatPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const initial = Array.from({ length: 6 }).map((_, i) => ({
-      id: Math.random().toString(36),
-      user: FAKE_USERS[Math.floor(Math.random() * FAKE_USERS.length)],
-      text: MESSAGES_POOL[Math.floor(Math.random() * MESSAGES_POOL.length)],
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    }));
+    const initial = Array.from({ length: 6 }).map((_, i) => {
+      const roleRoll = Math.random();
+      const role: UserRole = roleRoll > 0.8 ? 'VIP' : roleRoll > 0.4 ? 'MEMBER' : 'USER';
+      return {
+        id: Math.random().toString(36),
+        user: FAKE_USERS[Math.floor(Math.random() * FAKE_USERS.length)],
+        role: role,
+        text: MESSAGES_POOL[Math.floor(Math.random() * MESSAGES_POOL.length)],
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+    });
     setMessages(initial);
   }, []);
 
@@ -102,9 +110,13 @@ export default function ChatPage() {
             replyData = { user: targetMsg.user, text: targetMsg.text };
           }
 
+          const roleRoll = Math.random();
+          const role: UserRole = roleRoll > 0.8 ? 'VIP' : roleRoll > 0.4 ? 'MEMBER' : 'USER';
+
           const msg: ChatMessage = {
             id: Math.random().toString(36),
             user: user,
+            role: role,
             text: text,
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             replyTo: replyData,
@@ -145,6 +157,7 @@ export default function ChatPage() {
     const msg: ChatMessage = {
       id: Date.now().toString(),
       user: 'Admin',
+      role: 'ADMIN',
       text: newMessage,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isAdmin: true,
@@ -161,6 +174,34 @@ export default function ChatPage() {
     // Focus input
     const input = document.getElementById('chat-input');
     if (input) input.focus();
+  };
+
+  const renderRoleBadge = (role: UserRole) => {
+    switch (role) {
+      case 'ADMIN':
+        return (
+          <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary rounded-md shadow-[0_0_15px_rgba(200,153,255,0.6)] border border-white/20">
+            <Crown className="w-2.5 h-2.5 text-primary-foreground fill-current" />
+            <span className="text-[9px] font-black text-primary-foreground uppercase">Admin</span>
+          </div>
+        );
+      case 'VIP':
+        return (
+          <div className="flex items-center gap-1 px-1.5 py-0.5 bg-yellow-500/20 rounded-md border border-yellow-500/40 shadow-[0_0_10px_rgba(234,179,8,0.2)]">
+            <Star className="w-2.5 h-2.5 text-yellow-400 fill-yellow-400" />
+            <span className="text-[8px] font-black text-yellow-400 uppercase">VIP</span>
+          </div>
+        );
+      case 'MEMBER':
+        return (
+          <div className="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/20 rounded-md border border-emerald-500/40">
+            <CheckCircle className="w-2.5 h-2.5 text-emerald-400 fill-emerald-400/20" />
+            <span className="text-[8px] font-black text-emerald-400 uppercase">Member</span>
+          </div>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -204,14 +245,12 @@ export default function ChatPage() {
                 className={`flex flex-col group ${msg.isAdmin ? 'items-end' : 'items-start'}`}
               >
                 <div className={`flex items-center gap-2 mb-1 ${msg.isAdmin ? 'flex-row-reverse' : 'flex-row'}`}>
-                  {msg.isAdmin ? (
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary rounded-md shadow-[0_0_15px_rgba(200,153,255,0.6)] border border-white/20">
-                      <Crown className="w-2.5 h-2.5 text-primary-foreground fill-current" />
-                      <span className="text-[9px] font-black text-primary-foreground uppercase">Admin</span>
-                    </div>
-                  ) : (
+                  {renderRoleBadge(msg.role)}
+                  
+                  {!msg.isAdmin && (
                     <span className="text-[10px] sm:text-xs font-bold text-muted-foreground">{msg.user}</span>
                   )}
+                  
                   <span className="text-[9px] text-white/20">{msg.time}</span>
                   
                   {/* Reply Button UI */}
