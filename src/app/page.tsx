@@ -92,23 +92,33 @@ export default function Home() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2 + idx * 0.05 }}
               whileHover={{ y: -8 }}
-              className="relative aspect-[3/4] rounded-3xl overflow-hidden group cursor-pointer"
+              className="relative aspect-square rounded-[32px] overflow-hidden group cursor-pointer border border-white/5 hover:border-primary/50 transition-all shadow-lg"
             >
               <Link href={game.href}>
                 <div className="absolute inset-0 z-0">
-                  <img src={game.image} alt={game.name} className="w-full h-full object-cover grayscale-[0.5] group-hover:grayscale-0 transition-all duration-500 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+                  <img 
+                    src={game.image} 
+                    alt={game.name} 
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                    data-ai-hint={PlaceHolderImages.find(i => i.id === game.id)?.imageHint}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
                 </div>
-                <div className="absolute inset-0 z-10 p-6 flex flex-col justify-end">
-                  <div className="mb-4">
-                    <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 group-hover:border-primary/50 transition-colors">
-                      <game.icon className="w-6 h-6 text-primary" />
+                
+                <div className="absolute inset-0 z-10 p-5 flex flex-col justify-between">
+                  <div className="flex justify-between items-start">
+                    <div className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/10 group-hover:border-primary transition-colors">
+                      <game.icon className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="px-3 py-1 bg-primary/10 backdrop-blur-md rounded-full border border-primary/20">
+                      <span className="text-[10px] font-black text-primary uppercase tracking-tighter">Live</span>
                     </div>
                   </div>
-                  <h3 className="text-3xl font-headline font-black mb-1 group-hover:text-primary transition-colors">{game.name}</h3>
-                  <p className="text-sm text-muted-foreground group-hover:text-white/80 transition-colors">Win huge prizes in {game.name.toLowerCase()}!</p>
                   
-                  <div className="mt-4 h-1 w-0 group-hover:w-full bg-primary transition-all duration-300" />
+                  <div>
+                    <h3 className="text-2xl font-headline font-black group-hover:text-primary transition-colors">{game.name}</h3>
+                    <p className="text-xs text-muted-foreground font-medium group-hover:text-white/80 transition-colors">Play & Win Big</p>
+                  </div>
                 </div>
               </Link>
             </motion.div>
