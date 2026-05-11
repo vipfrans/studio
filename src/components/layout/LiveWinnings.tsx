@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState } from 'react';
@@ -50,7 +49,7 @@ export const LiveWinnings = () => {
     <div className="fixed bottom-0 left-0 right-0 h-20 glass-purple z-50 overflow-hidden flex items-center px-6 gap-6">
       <div className="flex-shrink-0 flex items-center gap-2 border-r border-white/10 pr-6 mr-6">
         <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-        <span className="font-headline font-bold text-sm text-muted-foreground uppercase tracking-widest">Live Winnings</span>
+        <span className="font-headline font-bold text-sm text-muted-foreground uppercase tracking-widest">Last Winnings</span>
       </div>
       
       <div className="flex-1 flex gap-4 overflow-x-auto no-scrollbar">

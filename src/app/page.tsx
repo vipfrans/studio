@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -99,24 +98,24 @@ export default function Home() {
                   <img 
                     src={game.image} 
                     alt={game.name} 
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 brightness-[0.7] group-hover:brightness-[0.9]" 
                     data-ai-hint={PlaceHolderImages.find(i => i.id === game.id)?.imageHint}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-80" />
                 </div>
                 
                 <div className="absolute inset-0 z-10 p-5 flex flex-col justify-between">
                   <div className="flex justify-between items-start">
-                    <div className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/10 group-hover:border-primary transition-colors">
-                      <game.icon className="w-5 h-5 text-primary" />
+                    <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/10 group-hover:border-primary transition-colors shadow-xl">
+                      <game.icon className="w-6 h-6 text-primary" />
                     </div>
-                    <div className="px-3 py-1 bg-primary/10 backdrop-blur-md rounded-full border border-primary/20">
+                    <div className="px-3 py-1 bg-primary/20 backdrop-blur-md rounded-full border border-primary/30">
                       <span className="text-[10px] font-black text-primary uppercase tracking-tighter">Live</span>
                     </div>
                   </div>
                   
-                  <div>
-                    <h3 className="text-2xl font-headline font-black group-hover:text-primary transition-colors">{game.name}</h3>
+                  <div className="translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                    <h3 className="text-2xl font-headline font-black group-hover:text-primary transition-colors drop-shadow-lg">{game.name}</h3>
                     <p className="text-xs text-muted-foreground font-medium group-hover:text-white/80 transition-colors">Play & Win Big</p>
                   </div>
                 </div>

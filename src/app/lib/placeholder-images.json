@@ -1,29 +1,28 @@
-
 {
   "placeholderImages": [
     {
       "id": "rocket",
-      "description": "Stylish 3D purple rocket blasting off",
-      "imageUrl": "https://picsum.photos/seed/crash-rocket/600/600",
-      "imageHint": "rocket space"
+      "description": "3D Purple Rocket Illustration",
+      "imageUrl": "https://picsum.photos/seed/rocket-game-icon/600/600",
+      "imageHint": "3d rocket"
     },
     {
       "id": "mines",
-      "description": "Golden diamonds and glowing purple mines",
-      "imageUrl": "https://picsum.photos/seed/mines-gems/600/600",
-      "imageHint": "diamonds gems"
+      "description": "3D Explosive Mine Illustration",
+      "imageUrl": "https://picsum.photos/seed/mine-game-icon/600/600",
+      "imageHint": "3d bomb"
     },
     {
       "id": "coinflip",
-      "description": "Double sided golden crypto coin",
-      "imageUrl": "https://picsum.photos/seed/gold-coin/600/600",
-      "imageHint": "gold coin"
+      "description": "3D Gold Coin Illustration",
+      "imageUrl": "https://picsum.photos/seed/coin-game-icon/600/600",
+      "imageHint": "3d coin"
     },
     {
       "id": "cases",
-      "description": "High quality mystery loot box",
-      "imageUrl": "https://picsum.photos/seed/mystery-box/600/600",
-      "imageHint": "loot box"
+      "description": "3D Mystery Loot Box Illustration",
+      "imageUrl": "https://picsum.photos/seed/case-game-icon/600/600",
+      "imageHint": "3d box"
     }
   ]
 }
