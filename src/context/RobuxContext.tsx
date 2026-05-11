@@ -9,8 +9,9 @@ interface RobuxContextType {
   balance: number;
   userProfile: any;
   loading: boolean;
-  addRobux: (amount: number, game: string) => void;
-  removeRobux: (amount: number, game?: string) => void;
+  addRobux: (amount: number, game: string) => Promise<void>;
+  removeRobux: (amount: number) => Promise<void>;
+  recordLoss: (amount: number, game: string) => Promise<void>;
   isAdminOpen: boolean;
   toggleAdmin: () => void;
   isVerified: boolean;
@@ -54,18 +55,14 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     if (profile) {
       setIsVerified(profile.isVerified || false);
-      
-      // Auto-enforce Founder rank for 'dew'
       if (profile.username?.toLowerCase() === 'dew' && profile.role !== 'OWNER' && userDocRef) {
         updateDoc(userDocRef, { role: 'OWNER' });
       }
     }
   }, [profile, userDocRef]);
 
-  const addRobux = async (amount: number, game: string = 'Game') => {
+  const addRobux = async (amount: number, game: string) => {
     if (!userDocRef || !db) return;
-    
-    // Ensure game is never undefined for Firestore
     const safeGame = game || 'Unknown Game';
 
     await updateDoc(userDocRef, { 
@@ -82,7 +79,7 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (amount > 0) {
       addDoc(collection(db, 'real_winnings'), {
         username: profile?.username || 'Player',
-        amount: amount,
+        amount: Math.floor(amount),
         game: safeGame,
         avatarUrl: profile?.avatarUrl || '',
         createdAt: serverTimestamp()
@@ -90,22 +87,25 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const removeRobux = async (amount: number, game?: string) => {
+  const removeRobux = async (amount: number) => {
     if (!userDocRef) return;
-    const safeGame = game || 'Unknown Game';
-    
     await updateDoc(userDocRef, { 
       balance: increment(-amount),
       "stats.totalWagered": increment(amount),
-      "stats.totalGames": increment(1),
-      ...(game ? {
-        gamesHistory: arrayUnion({
-          game: safeGame,
-          amount,
-          type: 'LOSS',
-          createdAt: new Date().toISOString()
-        })
-      } : {})
+      "stats.totalGames": increment(1)
+    });
+  };
+
+  const recordLoss = async (amount: number, game: string) => {
+    if (!userDocRef) return;
+    const safeGame = game || 'Unknown Game';
+    await updateDoc(userDocRef, {
+      gamesHistory: arrayUnion({
+        game: safeGame,
+        amount,
+        type: 'LOSS',
+        createdAt: new Date().toISOString()
+      })
     });
   };
 
@@ -126,6 +126,7 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       loading,
       addRobux, 
       removeRobux, 
+      recordLoss,
       isAdminOpen, 
       toggleAdmin,
       isVerified,

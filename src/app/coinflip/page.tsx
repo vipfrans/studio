@@ -10,15 +10,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 export default function CoinflipPage() {
-  const { balance, removeRobux, addRobux } = useRobux();
+  const { balance, removeRobux, addRobux, recordLoss } = useRobux();
   const [betAmount, setBetAmount] = useState(100);
   const [isFlipping, setIsFlipping] = useState(false);
   const [winner, setWinner] = useState<'A' | 'B' | null>(null);
   const [side, setSide] = useState<'A' | 'B'>('A');
 
   const startFlip = () => {
-    if (balance < betAmount) return;
-    removeRobux(betAmount, 'Coinflip');
+    if (balance < betAmount || isFlipping) return;
+    removeRobux(betAmount);
     
     setIsFlipping(true);
     setWinner(null);
@@ -30,6 +30,8 @@ export default function CoinflipPage() {
       
       if (result === side) {
         addRobux(betAmount * 1.95, 'Coinflip');
+      } else {
+        recordLoss(betAmount, 'Coinflip');
       }
     }, 2000);
   };
@@ -125,7 +127,7 @@ export default function CoinflipPage() {
               {winner === side ? 'YOU WON!' : 'YOU LOST!'}
             </div>
             <p className="text-muted-foreground">
-              {winner === side ? `You doubled your bet and earned R$ ${betAmount * 2}` : 'Unlucky flip. Try again?'}
+              {winner === side ? `You doubled your bet and earned R$ ${Math.floor(betAmount * 1.95)}` : 'Unlucky flip. Try again?'}
             </p>
           </motion.div>
         )}

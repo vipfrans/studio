@@ -3,18 +3,21 @@
 
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, Shield, Target, TrendingUp, History, ArrowLeft, Check, Loader2, Award, Camera, Crown } from 'lucide-react';
+import { Settings, Shield, Target, TrendingUp, History, ArrowLeft, Check, Loader2, Award, Camera, Crown, LogOut, Rocket, Bomb, Coins, Box } from 'lucide-react';
 import Link from 'next/link';
 import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { doc, getDocs, collection, query, where, updateDoc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useAuth } from '@/firebase';
+import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
   const { userProfile, updateProfile, lang } = useRobux();
   const db = useFirestore();
+  const auth = useAuth();
+  const router = useRouter();
   const { toast } = useToast();
   const [newUsername, setNewUsername] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
@@ -22,12 +25,17 @@ export default function ProfilePage() {
 
   if (!userProfile) return <div className="p-12 text-center text-muted-foreground">Loading Profile...</div>;
 
+  const handleLogout = async () => {
+    await auth.signOut();
+    router.push('/auth');
+  };
+
   const handleUpdateUsername = async () => {
     const trimmedName = newUsername.trim();
     if (!trimmedName || userProfile.hasChangedUsername) return;
 
     if (trimmedName.length < 4) {
-      toast({ variant: "destructive", title: "Error", description: "Username is too short or taken." });
+      toast({ variant: "destructive", title: "Error", description: "Username is too short or restricted." });
       return;
     }
 
@@ -75,6 +83,14 @@ export default function ProfilePage() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const getGameIcon = (game: string) => {
+    const g = game.toLowerCase();
+    if (g.includes('rocket')) return <Rocket className="w-5 h-5" />;
+    if (g.includes('mines')) return <Bomb className="w-5 h-5" />;
+    if (g.includes('coinflip')) return <Coins className="w-5 h-5" />;
+    return <Box className="w-5 h-5" />;
   };
 
   const roleLabel = (userProfile.role === 'OWNER' || userProfile.username?.toLowerCase() === 'dew') ? 'Founder & CEO' : userProfile.role;
@@ -144,6 +160,11 @@ export default function ProfilePage() {
                   </Button>
                 </div>
               </div>
+              
+              <Button onClick={handleLogout} variant="destructive" className="w-full gap-2 h-12 rounded-xl mt-4 font-black">
+                <LogOut className="w-4 h-4" /> 
+                {lang === 'EN' ? 'LOGOUT ACCOUNT' : 'تسجيل الخروج'}
+              </Button>
             </div>
           </div>
         </motion.div>
@@ -180,7 +201,7 @@ export default function ProfilePage() {
                 <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
                   <div className="flex items-center gap-4">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${game.type === 'WIN' ? 'bg-success/20 text-success border border-success/30' : 'bg-red-500/20 text-red-500 border border-red-500/30'}`}>
-                      {game.game.substring(0, 1)}
+                      {getGameIcon(game.game)}
                     </div>
                     <div>
                       <p className="font-bold text-white">{game.game}</p>
@@ -189,7 +210,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="text-right">
                     <p className={`font-black ${game.type === 'WIN' ? 'text-success' : 'text-white/40'}`}>
-                      {game.type === 'WIN' ? '+' : '-'}R$ {game.amount.toLocaleString()}
+                      {game.type === 'WIN' ? '+' : '-'}R$ {Math.floor(game.amount).toLocaleString()}
                     </p>
                   </div>
                 </div>

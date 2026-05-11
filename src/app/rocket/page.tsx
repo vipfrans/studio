@@ -21,7 +21,7 @@ interface PlayerBet {
 }
 
 export default function RocketPage() {
-  const { balance, removeRobux, addRobux, nextCrashMultiplier, setNextCrashMultiplier, forceCrashTrigger, userProfile, lang } = useRobux();
+  const { balance, removeRobux, addRobux, recordLoss, nextCrashMultiplier, setNextCrashMultiplier, userProfile, lang } = useRobux();
   const [betAmount, setBetAmount] = useState(100);
   const [multiplier, setMultiplier] = useState(1.00);
   const [gameState, setGameState] = useState<'waiting' | 'flying' | 'crashed'>('waiting');
@@ -65,7 +65,6 @@ export default function RocketPage() {
       });
     }, 1000);
 
-    // Randomize bot count between 4 and 14
     const botCount = Math.floor(Math.random() * (14 - 4 + 1)) + 4;
     const shuffledNames = [...REALISTIC_NAMES].sort(() => 0.5 - Math.random());
     const bots = shuffledNames.slice(0, botCount).map(name => ({
@@ -107,12 +106,17 @@ export default function RocketPage() {
     setNextCrashMultiplier(null);
     const finalMult = Number(multiplierRef.current.toFixed(2));
     setHistory(prev => [finalMult, ...prev].slice(0, 10));
+
+    if (isUserInRound && !hasCashedOut) {
+      recordLoss(betAmount, 'Rocket');
+    }
+
     setTimeout(initWaitingPhase, 4000);
   };
 
   const handlePlaceBet = async () => {
     if (gameState !== 'waiting' || balance < betAmount || isUserInRound || !userProfile) return;
-    await removeRobux(betAmount, 'Rocket');
+    await removeRobux(betAmount);
     setIsUserInRound(true);
     setActiveBets(prev => [{
       user: userProfile.username,

@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 const GRID_SIZE = 25;
 
 export default function MinesPage() {
-  const { balance, removeRobux, addRobux } = useRobux();
+  const { balance, removeRobux, addRobux, recordLoss } = useRobux();
   const [betAmount, setBetAmount] = useState(100);
   const [bombCount, setBombCount] = useState(3);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -24,15 +24,13 @@ export default function MinesPage() {
   const startGame = () => {
     if (balance < betAmount || isPlaying) return;
     
-    // Completely reset everything for a new game
     setMines([]);
     setRevealed([]);
     setHasWon(false);
     setIsGameOver(false);
     
-    removeRobux(betAmount, 'Mines');
+    removeRobux(betAmount);
     
-    // Generate mines
     const newMines: number[] = [];
     while (newMines.length < bombCount) {
       const pos = Math.floor(Math.random() * GRID_SIZE);
@@ -47,15 +45,13 @@ export default function MinesPage() {
     if (!isPlaying || revealed.includes(index) || isGameOver) return;
 
     if (mines.includes(index)) {
-      // LOSE
       setIsGameOver(true);
       setIsPlaying(false);
       setRevealed(prev => Array.from(new Set([...prev, ...mines])));
+      recordLoss(betAmount, 'Mines');
     } else {
-      // SAFE
       const nextRevealed = [...revealed, index];
       setRevealed(nextRevealed);
-      
       if (nextRevealed.length === GRID_SIZE - bombCount) {
         cashOut(nextRevealed.length);
       }
@@ -157,7 +153,7 @@ export default function MinesPage() {
                 onClick={resetGame}
                 className="w-full h-14 text-lg font-black bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl"
               >
-                <RefreshCw className="w-4 h-4 mr-2" /> PLAY AGAIN
+                <RefreshCw className="w-4 h-4 mr-2" /> {hasWon ? 'PLAY AGAIN' : "CAN'T START"}
               </Button>
             )}
           </div>

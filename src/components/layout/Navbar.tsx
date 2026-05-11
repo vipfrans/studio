@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { CreditCard, ChevronDown, Hammer, LogOut, User, Languages } from 'lucide-react';
+import { CreditCard, ChevronDown, Hammer, LogOut, User, Languages, Wallet, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
 import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
 import { AdminPanel } from '@/components/AdminPanel';
@@ -16,11 +16,6 @@ export const Navbar = () => {
   const auth = useAuth();
   const router = useRouter();
   const [isBalanceMenuOpen, setIsBalanceMenuOpen] = useState(false);
-
-  const handleLogout = async () => {
-    await auth.signOut();
-    router.push('/auth');
-  };
 
   const isOwner = userProfile?.role === 'OWNER' || userProfile?.username?.toLowerCase() === 'dew';
 
@@ -62,7 +57,7 @@ export const Navbar = () => {
               <div className="relative">
                 <motion.div 
                   onClick={() => setIsBalanceMenuOpen(!isBalanceMenuOpen)}
-                  className="flex items-center gap-2 px-4 py-2 glass-purple rounded-full cursor-pointer border border-primary/20"
+                  className="flex items-center gap-2 px-4 py-2 glass-purple rounded-full cursor-pointer border border-primary/20 hover:border-primary/40 transition-all"
                 >
                   <span className="text-xs font-bold text-primary">R$</span>
                   <span className="font-headline font-bold text-primary">{balance.toLocaleString()}</span>
@@ -71,13 +66,27 @@ export const Navbar = () => {
 
                 <AnimatePresence>
                   {isBalanceMenuOpen && (
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full mt-2 right-0 w-48 bg-background border-2 border-primary/30 rounded-2xl p-1 z-50">
-                      <Link href="/profile" className="w-full flex items-center gap-2 px-4 py-3 hover:bg-white/5 rounded-xl text-sm font-bold">
-                        <User className="w-4 h-4" /> Profile
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }} 
+                      animate={{ opacity: 1, y: 0 }} 
+                      exit={{ opacity: 0, y: 10 }} 
+                      className="absolute top-full mt-2 right-0 w-56 bg-card border-2 border-primary/30 rounded-2xl p-2 z-50 shadow-2xl"
+                    >
+                      <div className="space-y-1 mb-2">
+                        <Button className="w-full justify-start gap-3 bg-success/20 hover:bg-success/30 text-success border-none h-11 rounded-xl">
+                          <ArrowDownToLine className="w-4 h-4" />
+                          <span className="text-xs font-black uppercase">Deposit</span>
+                        </Button>
+                        <Button className="w-full justify-start gap-3 bg-primary/20 hover:bg-primary/30 text-primary border-none h-11 rounded-xl">
+                          <ArrowUpFromLine className="w-4 h-4" />
+                          <span className="text-xs font-black uppercase">Withdraw</span>
+                        </Button>
+                      </div>
+                      <div className="h-px bg-white/5 my-2" />
+                      <Link href="/profile" className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-xl text-sm font-bold text-muted-foreground hover:text-white transition-colors">
+                        <User className="w-4 h-4" /> 
+                        <span>Profile</span>
                       </Link>
-                      <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-3 hover:bg-red-500/10 rounded-xl text-red-500 text-sm font-bold border-t border-white/5">
-                        <LogOut className="w-4 h-4" /> Logout
-                      </button>
                     </motion.div>
                   )}
                 </AnimatePresence>
