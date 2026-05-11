@@ -3,25 +3,25 @@
 
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useAuth, useFirestore, useDoc } from '@/firebase';
-import { doc, setDoc, updateDoc, increment, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, increment, collection, addDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
 
 interface RobuxContextType {
   balance: number;
   userProfile: any;
   loading: boolean;
   addRobux: (amount: number, game: string) => void;
-  removeRobux: (amount: number) => void;
+  removeRobux: (amount: number, game?: string) => void;
   isAdminOpen: boolean;
   toggleAdmin: () => void;
   isVerified: boolean;
   setIsVerified: (val: boolean) => void;
   lang: 'EN' | 'AR';
   setLang: (val: 'EN' | 'AR') => void;
-  // Rocket Controls
   nextCrashMultiplier: number | null;
   setNextCrashMultiplier: (val: number | null) => void;
   forceCrashTrigger: number;
   triggerImmediateCrash: () => void;
+  updateProfile: (data: any) => Promise<void>;
 }
 
 const RobuxContext = createContext<RobuxContextType | undefined>(undefined);
@@ -57,24 +57,50 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [profile]);
 
-  const addRobux = (amount: number, game: string) => {
+  const addRobux = async (amount: number, game: string) => {
     if (!userDocRef || !db) return;
-    updateDoc(userDocRef, { balance: increment(amount) });
+    await updateDoc(userDocRef, { 
+      balance: increment(amount),
+      "stats.totalWins": increment(amount),
+      gamesHistory: arrayUnion({
+        game,
+        amount,
+        type: 'WIN',
+        createdAt: new Date().toISOString()
+      })
+    });
     
-    // تسجيل الفوز ليظهر للآخرين (نستخدم مجموعة افتراضية للانتصارات الحقيقية)
     if (amount > 0) {
       addDoc(collection(db, 'real_winnings'), {
         username: profile?.username || 'Player',
         amount: amount,
         game: game,
+        avatarUrl: profile?.avatarUrl || '',
         createdAt: serverTimestamp()
       });
     }
   };
 
-  const removeRobux = (amount: number) => {
+  const removeRobux = async (amount: number, game?: string) => {
     if (!userDocRef) return;
-    updateDoc(userDocRef, { balance: increment(-amount) });
+    await updateDoc(userDocRef, { 
+      balance: increment(-amount),
+      "stats.totalWagered": increment(amount),
+      "stats.totalGames": increment(1),
+      ...(game ? {
+        gamesHistory: arrayUnion({
+          game,
+          amount,
+          type: 'LOSS',
+          createdAt: new Date().toISOString()
+        })
+      } : {})
+    });
+  };
+
+  const updateProfile = async (data: any) => {
+    if (!userDocRef) return;
+    await updateDoc(userDocRef, data);
   };
 
   const toggleAdmin = () => setIsAdminOpen(prev => !prev);
@@ -101,7 +127,8 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       nextCrashMultiplier,
       setNextCrashMultiplier,
       forceCrashTrigger,
-      triggerImmediateCrash
+      triggerImmediateCrash,
+      updateProfile
     }}>
       {children}
     </RobuxContext.Provider>

@@ -3,13 +3,14 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Send, Users, Crown, ShieldCheck, MessageSquare, Dot, Reply, X, Star, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Send, Crown, CheckCircle, MessageSquare, Reply, X, Star, ShieldCheck, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth, useFirestore, useCollection } from '@/firebase';
-import { collection, addDoc, query, orderBy, limit, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, limit, serverTimestamp, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { useRobux } from '@/context/RobuxContext';
+import { useToast } from '@/hooks/use-toast';
 
 type UserRole = 'ADMIN' | 'VIP' | 'MEMBER' | 'USER';
 
@@ -19,6 +20,7 @@ interface ChatMessage {
   username: string;
   role: UserRole;
   text: string;
+  avatarUrl?: string;
   createdAt: any;
   replyTo?: {
     username: string;
@@ -26,30 +28,15 @@ interface ChatMessage {
   } | null;
 }
 
-const FAKE_USERS = [
-  { username: 'RobloxKing', role: 'VIP' as UserRole },
-  { username: 'DiamondDev', role: 'MEMBER' as UserRole },
-  { username: 'LumineGamer', role: 'USER' as UserRole },
-  { username: 'BloxLord', role: 'VIP' as UserRole },
-  { username: 'KoroneFan', role: 'MEMBER' as UserRole }
-];
-
-const FAKE_PHRASES = [
-  "Wow just won 5k in Rocket!",
-  "Mines is so hard today lol",
-  "Is there a code?",
-  "Good luck everyone!",
-  "Someone double up with me in Coinflip",
-  "This site is clean",
-  "I love the animations"
-];
+const ROLES: UserRole[] = ['ADMIN', 'VIP', 'MEMBER', 'USER'];
 
 export default function ChatPage() {
   const db = useFirestore();
   const { userProfile, lang } = useRobux();
+  const { toast } = useToast();
   const [newMessage, setNewMessage] = useState('');
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
-  const [fakeMessages, setFakeMessages] = useState<ChatMessage[]>([]);
+  const [showRankPicker, setShowRankPicker] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const messagesQuery = useMemo(() => {
@@ -59,49 +46,57 @@ export default function ChatPage() {
 
   const { data: realMessages } = useCollection(messagesQuery) as any;
 
-  // دمج الرسائل الحقيقية مع الوهمية وترتيبها زمنياً
-  const allMessages = useMemo(() => {
-    const combined = [...(realMessages || []), ...fakeMessages];
-    return combined.sort((a: any, b: any) => {
-      const timeA = a.createdAt?.seconds || Date.now() / 1000;
-      const timeB = b.createdAt?.seconds || Date.now() / 1000;
-      return timeA - timeB;
-    });
-  }, [realMessages, fakeMessages]);
-
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [allMessages]);
+  }, [realMessages]);
 
-  // محاكاة إرسال رسائل من أشخاص وهميين
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (Math.random() > 0.7) {
-        const fakeUser = FAKE_USERS[Math.floor(Math.random() * FAKE_USERS.length)];
-        const phrase = FAKE_PHRASES[Math.floor(Math.random() * FAKE_PHRASES.length)];
-        const fakeMsg: ChatMessage = {
-          id: 'fake-' + Math.random(),
-          userId: 'fake-' + fakeUser.username,
-          username: fakeUser.username,
-          role: fakeUser.role,
-          text: phrase,
-          createdAt: { seconds: Date.now() / 1000 }
-        };
-        setFakeMessages(prev => [...prev, fakeMsg].slice(-20));
-      }
-    }, 15000);
-    return () => clearInterval(interval);
-  }, []);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setNewMessage(val);
+    if (val.endsWith('#') && userProfile?.role === 'ADMIN') {
+      setShowRankPicker(true);
+    } else {
+      setShowRankPicker(false);
+    }
+  };
+
+  const handleRankSelect = (role: string) => {
+    setNewMessage(prev => prev + role + ' ');
+    setShowRankPicker(false);
+  };
 
   const handleSend = async () => {
     if (!newMessage.trim() || !userProfile || !db) return;
+
+    // معالجة الأمر ;rank
+    if (newMessage.startsWith(';rank') && userProfile.role === 'ADMIN') {
+      const parts = newMessage.split(' ');
+      if (parts.length >= 3) {
+        const targetUser = parts[1];
+        const role = parts[2].toUpperCase() as UserRole;
+        
+        if (ROLES.includes(role)) {
+          const q = query(collection(db, 'users'), where('usernameLowercase', '==', targetUser.toLowerCase()));
+          const snap = await getDocs(q);
+          if (!snap.empty) {
+            await updateDoc(doc(db, 'users', snap.docs[0].id), { role: role });
+            toast({ title: "Rank Updated", description: `${targetUser} is now ${role}` });
+          } else {
+            toast({ variant: "destructive", title: "Error", description: "User not found" });
+          }
+        }
+      }
+      setNewMessage('');
+      return;
+    }
     
     await addDoc(collection(db, 'chat_messages'), {
       userId: userProfile.uid,
       username: userProfile.username,
       role: userProfile.role,
+      avatarUrl: userProfile.avatarUrl || '',
       text: newMessage,
       createdAt: serverTimestamp(),
       replyTo: replyingTo ? { username: replyingTo.username, text: replyingTo.text } : null
@@ -140,71 +135,78 @@ export default function ChatPage() {
   };
 
   return (
-    <div className={`max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-12 h-[calc(100vh-80px)] sm:h-[85vh] flex flex-col pb-24 sm:pb-32 ${lang === 'AR' ? 'rtl text-right' : ''}`}>
+    <div className={`max-w-4xl mx-auto px-4 py-6 sm:py-12 h-[calc(100vh-80px)] sm:h-[85vh] flex flex-col pb-24 sm:pb-32 ${lang === 'AR' ? 'rtl text-right' : ''}`}>
       <div className={`flex items-center justify-between mb-4 ${lang === 'AR' ? 'flex-row-reverse' : ''}`}>
         <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
           <ArrowLeft className={`w-5 h-5 ${lang === 'AR' ? 'rotate-180' : ''}`} />
           <span className="font-bold">{lang === 'EN' ? 'Lobby' : 'الرئيسية'}</span>
         </Link>
-        <div className="px-4 py-2 bg-primary/10 rounded-full border border-primary/20 flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-          <span className="text-[10px] font-black text-primary uppercase">
-            {lang === 'EN' ? 'Real-time chat active' : 'الدردشة نشطة الآن'}
-          </span>
-        </div>
       </div>
 
       <div className="flex-1 glass-purple rounded-[32px] border-2 border-primary/20 flex flex-col overflow-hidden">
         <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 no-scrollbar">
-          {allMessages.map((msg: any) => (
+          {realMessages.map((msg: any) => (
             <motion.div 
               key={msg.id}
               initial={{ opacity: 0, x: msg.userId === userProfile?.uid ? 10 : -10 }}
               animate={{ opacity: 1, x: 0 }}
-              className={`flex flex-col ${msg.userId === userProfile?.uid ? 'items-end' : 'items-start'}`}
+              className={`flex gap-3 ${msg.userId === userProfile?.uid ? 'flex-row-reverse' : 'flex-row'}`}
             >
-              <div className={`flex items-center gap-2 mb-1 ${msg.userId === userProfile?.uid ? (lang === 'AR' ? 'flex-row' : 'flex-row-reverse') : (lang === 'AR' ? 'flex-row-reverse' : 'flex-row')}`}>
-                {renderRoleBadge(msg.role)}
-                <span className="text-[10px] font-bold text-muted-foreground">{msg.username}</span>
-                <button onClick={() => setReplyingTo(msg)} className="opacity-0 hover:opacity-100 p-1 text-primary">
-                  <Reply className="w-3 h-3" />
-                </button>
-              </div>
-              <div className={`px-4 py-2 rounded-2xl max-w-[85%] ${
-                msg.userId === userProfile?.uid 
-                  ? 'bg-primary text-primary-foreground rounded-tr-none' 
-                  : 'bg-white/5 border border-white/10 text-white rounded-tl-none'
-              }`}>
-                {msg.replyTo && (
-                  <div className="text-[10px] opacity-60 italic mb-1 border-l-2 border-primary/30 pl-2">
-                    {lang === 'EN' ? 'Replying to' : 'رداً على'} {msg.replyTo.username}: {msg.replyTo.text}
-                  </div>
-                )}
-                {msg.text}
+              <img src={msg.avatarUrl || `https://picsum.photos/seed/${msg.username}/40/40`} className="w-8 h-8 rounded-xl border border-white/10 shrink-0" alt="Avatar" />
+              <div className={`flex flex-col ${msg.userId === userProfile?.uid ? 'items-end' : 'items-start'}`}>
+                <div className="flex items-center gap-2 mb-1">
+                  {renderRoleBadge(msg.role)}
+                  <span className="text-[10px] font-bold text-muted-foreground">{msg.username}</span>
+                  <button onClick={() => setReplyingTo(msg)} className="opacity-40 hover:opacity-100 p-1">
+                    <Reply className="w-3 h-3" />
+                  </button>
+                </div>
+                <div className={`px-4 py-2 rounded-2xl ${
+                  msg.userId === userProfile?.uid 
+                    ? 'bg-primary text-primary-foreground rounded-tr-none' 
+                    : 'bg-white/5 border border-white/10 text-white rounded-tl-none'
+                }`}>
+                  {msg.replyTo && (
+                    <div className="text-[10px] opacity-60 italic mb-1 border-l-2 border-primary/30 pl-2">
+                      Replying to {msg.replyTo.username}
+                    </div>
+                  )}
+                  {msg.text}
+                </div>
               </div>
             </motion.div>
           ))}
         </div>
 
-        <div className="p-4 bg-background/60 backdrop-blur-xl border-t border-primary/10">
+        <div className="p-4 bg-background/60 backdrop-blur-xl border-t border-primary/10 relative">
+          <AnimatePresence>
+            {showRankPicker && (
+              <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} className="absolute bottom-full left-4 mb-2 bg-popover border-2 border-primary/30 rounded-xl p-2 z-50 shadow-2xl">
+                {ROLES.map(r => (
+                  <button key={r} onClick={() => handleRankSelect(r)} className="block w-full text-left px-4 py-2 hover:bg-primary/20 rounded-lg text-xs font-bold transition-colors">
+                    {r}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {replyingTo && (
             <div className="mb-2 p-2 bg-primary/10 rounded-xl flex items-center justify-between">
-              <span className="text-[10px] text-primary">
-                {lang === 'EN' ? 'Replying to' : 'رد على'} {replyingTo.username}
-              </span>
+              <span className="text-[10px] text-primary">Replying to {replyingTo.username}</span>
               <button onClick={() => setReplyingTo(null)}><X className="w-3 h-3" /></button>
             </div>
           )}
           <div className="relative flex gap-2">
             <Input 
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={handleInputChange}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder={lang === 'EN' ? "Type your message..." : "اكتب رسالتك..."}
+              placeholder={lang === 'EN' ? "Type message... (;rank name ROLE)" : "اكتب رسالة..."}
               className="bg-white/5 border-white/10 h-12 rounded-xl"
             />
             <Button onClick={handleSend} className="h-12 w-12 bg-primary rounded-xl">
-              <Send className={`w-5 h-5 ${lang === 'AR' ? 'rotate-180' : ''}`} />
+              <Send className="w-5 h-5" />
             </Button>
           </div>
         </div>

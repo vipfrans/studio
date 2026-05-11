@@ -3,15 +3,39 @@
   "entities": {
     "UserProfile": {
       "title": "User Profile",
-      "description": "بيانات المستخدم الأساسية والرصيد.",
+      "description": "بيانات المستخدم الأساسية، الرصيد، الإحصائيات، والرتبة.",
       "type": "object",
       "properties": {
         "username": { "type": "string" },
+        "usernameLowercase": { "type": "string" },
         "balance": { "type": "number" },
-        "role": { "type": "string", "enum": ["ADMIN", "VIP", "MEMBER"] },
+        "role": { "type": "string", "enum": ["ADMIN", "VIP", "MEMBER", "USER"] },
+        "avatarUrl": { "type": "string" },
         "isVerified": { "type": "boolean" },
         "uid": { "type": "string" },
-        "internalEmail": { "type": "string" }
+        "internalEmail": { "type": "string" },
+        "hasChangedUsername": { "type": "boolean" },
+        "stats": {
+          "type": "object",
+          "properties": {
+            "totalGames": { "type": "number" },
+            "totalWagered": { "type": "number" },
+            "totalDeposited": { "type": "number" },
+            "totalWithdrawal": { "type": "number" }
+          }
+        },
+        "gamesHistory": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "game": { "type": "string" },
+              "amount": { "type": "number" },
+              "type": { "type": "string", "enum": ["WIN", "LOSS"] },
+              "createdAt": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
       },
       "required": ["username", "balance", "role"]
     },
@@ -26,20 +50,6 @@
       },
       "required": ["key", "isUsed"]
     },
-    "Announcement": {
-      "title": "Announcement",
-      "description": "إعلان عالمي يظهر لجميع المستخدمين.",
-      "type": "object",
-      "properties": {
-        "senderName": { "type": "string" },
-        "text": { "type": "string" },
-        "imageUrl": { "type": "string" },
-        "isVerified": { "type": "boolean" },
-        "active": { "type": "boolean" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["senderName", "text", "active"]
-    },
     "ChatMessage": {
       "title": "Chat Message",
       "description": "رسالة في الدردشة الحقيقية.",
@@ -49,14 +59,8 @@
         "username": { "type": "string" },
         "text": { "type": "string" },
         "role": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "replyTo": {
-          "type": "object",
-          "properties": {
-            "username": { "type": "string" },
-            "text": { "type": "string" }
-          }
-        }
+        "avatarUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "username", "text", "role", "createdAt"]
     }
@@ -72,10 +76,6 @@
     "/invite_keys/{keyId}": {
       "schema": "InviteKey",
       "description": "مفاتيح الدعوة."
-    },
-    "/announcements/{announcementId}": {
-      "schema": "Announcement",
-      "description": "الإعلانات العالمية."
     },
     "/chat_messages/{messageId}": {
       "schema": "ChatMessage",
