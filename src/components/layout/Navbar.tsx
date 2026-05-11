@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { CreditCard, ArrowDownToLine, ChevronDown, ShieldCheck } from 'lucide-react';
+import { CreditCard, ArrowDownToLine, ChevronDown, Hammer } from 'lucide-react';
 import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
 import { AdminPanel } from '@/components/AdminPanel';
@@ -31,11 +31,10 @@ export const Navbar = () => {
 
   return (
     <>
-      {/* Removed overflow-hidden to allow dropdowns to show */}
       <nav className="sticky top-0 z-50 px-3 sm:px-6 py-3 flex items-center justify-between backdrop-blur-md border-b border-white/5 bg-background/70">
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <Link href="/" className="flex items-center gap-2 sm:gap-3 group shrink-0">
-            {/* New Stylized 'K' Logo with Glow */}
+            {/* Logo K with Glow */}
             <div className="w-9 h-9 sm:w-11 sm:h-11 bg-primary/10 rounded-lg sm:rounded-2xl flex items-center justify-center border-2 border-primary/40 group-hover:scale-110 group-hover:border-primary transition-all duration-300 shrink-0 relative overflow-hidden shadow-[0_0_25px_rgba(200,153,255,0.4)]">
               <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
               <span className="relative z-10 font-headline font-black text-primary text-xl sm:text-2xl drop-shadow-[0_0_15px_rgba(200,153,255,1)] select-none">
@@ -48,14 +47,15 @@ export const Navbar = () => {
             </span>
           </Link>
           
-          {/* Admin Toggle - Now also a Stylized K for consistency */}
+          {/* Admin Toggle - Hammer Designed Button */}
           <Button
             variant="ghost"
             size="icon"
             onClick={toggleAdmin}
-            className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-primary/5 hover:bg-primary/20 border border-primary/20 shrink-0 relative overflow-hidden group/admin"
+            className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/30 shrink-0 relative overflow-hidden group/admin shadow-[0_0_15px_rgba(200,153,255,0.2)]"
           >
-            <span className="font-black text-primary text-xs group-hover/admin:scale-110 transition-transform">K</span>
+            <Hammer className="w-4 h-4 sm:w-5 h-5 text-primary group-hover/admin:rotate-[20deg] transition-all duration-300 drop-shadow-[0_0_8px_rgba(200,153,255,0.8)] relative z-10" />
+            <div className="absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent opacity-0 group-hover/admin:opacity-100 transition-opacity" />
             <div className="absolute inset-0 bg-primary/5 blur-sm opacity-0 group-hover/admin:opacity-100 transition-opacity" />
           </Button>
         </div>
