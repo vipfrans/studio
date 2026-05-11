@@ -1,9 +1,10 @@
+
 {
   "placeholderImages": [
     {
       "id": "rocket",
       "description": "3D Rocket Ship Launch Illustration",
-      "imageUrl": "https://picsum.photos/seed/rocket-3d-icon/600/600",
+      "imageUrl": "https://picsum.photos/seed/roblox-rocket-3d/600/600",
       "imageHint": "3d rocket"
     },
     {
@@ -15,13 +16,13 @@
     {
       "id": "coinflip",
       "description": "3D Shiny Gold Coin Illustration",
-      "imageUrl": "https://picsum.photos/seed/coin-3d-icon/600/600",
+      "imageUrl": "https://picsum.photos/seed/shiny-gold-coin-3d/600/600",
       "imageHint": "3d coin"
     },
     {
       "id": "cases",
       "description": "3D Mystery Loot Chest Illustration",
-      "imageUrl": "https://picsum.photos/seed/box-3d-icon/600/600",
+      "imageUrl": "https://picsum.photos/seed/mystery-box-3d/600/600",
       "imageHint": "3d box"
     }
   ]

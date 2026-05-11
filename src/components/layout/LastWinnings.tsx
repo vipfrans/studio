@@ -67,13 +67,13 @@ export const LastWinnings = () => {
                 className="flex-shrink-0 flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-2"
               >
                 <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10">
-                  <img src={win.avatar} alt={win.user} className="w-full h-full" />
+                  <img src={win.avatar} alt={win.user} className="w-8 h-8 object-cover" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-xs font-bold truncate max-w-[80px]">{win.user}</span>
+                  <span className="text-[10px] font-bold truncate max-w-[80px]">{win.user}</span>
                   <div className="flex items-center gap-1">
                     <Icon className="w-3 h-3 text-primary" />
-                    <span className="text-neon-green font-headline font-bold text-sm">
+                    <span className="text-neon-green font-headline font-bold text-xs">
                       +R$ {win.amount.toLocaleString()}
                     </span>
                   </div>
