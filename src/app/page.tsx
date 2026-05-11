@@ -102,11 +102,11 @@ export default function Home() {
                       <img 
                         src={imageData.imageUrl} 
                         alt={game.name} 
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 brightness-[0.7] group-hover:brightness-[0.9]" 
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 brightness-[0.6] group-hover:brightness-[0.8]" 
                         data-ai-hint={imageData.imageHint}
                       />
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-80" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent opacity-80" />
                   </div>
                   
                   <div className="absolute inset-0 z-10 p-5 flex flex-col justify-between">
@@ -115,13 +115,13 @@ export default function Home() {
                         <game.icon className="w-6 h-6 text-primary" />
                       </div>
                       <div className="px-3 py-1 bg-primary/20 backdrop-blur-md rounded-full border border-primary/30">
-                        <span className="text-[10px] font-black text-primary uppercase tracking-tighter">Live</span>
+                        <span className="text-[10px] font-black text-primary uppercase tracking-tighter">New</span>
                       </div>
                     </div>
                     
                     <div className="translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
                       <h3 className="text-2xl font-headline font-black group-hover:text-primary transition-colors drop-shadow-lg">{game.name}</h3>
-                      <p className="text-xs text-muted-foreground font-medium group-hover:text-white/80 transition-colors">Play & Win Big</p>
+                      <p className="text-xs text-muted-foreground font-medium group-hover:text-white/80 transition-colors">Play Now</p>
                     </div>
                   </div>
                 </Link>
