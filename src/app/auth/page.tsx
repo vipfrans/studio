@@ -3,10 +3,10 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ShieldCheck, User, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { ShieldCheck, User, Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth, useFirestore } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,11 +23,28 @@ export default function AuthPage() {
   const { toast } = useToast();
 
   const handleAuth = async () => {
-    if (!username || !password) return;
+    if (!username || !password) {
+      toast({
+        variant: "destructive",
+        title: "Missing Fields",
+        description: "Please enter both username and password."
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      toast({
+        variant: "destructive",
+        title: "Weak Password",
+        description: "Password must be at least 6 characters long."
+      });
+      return;
+    }
+
     setLoading(true);
     
-    // تحويل اليوزر لنظام إيميل ليعمل مع Firebase
-    const email = `${username.toLowerCase()}@koronebet.xyz`;
+    // Convert username to a valid Firebase email format
+    const email = `${username.toLowerCase().replace(/\s+/g, '')}@koronebet.xyz`;
 
     try {
       if (isLogin) {
@@ -36,6 +53,8 @@ export default function AuthPage() {
         router.push('/');
       } else {
         const userCred = await createUserWithEmailAndPassword(auth, email, password);
+        
+        // Create user profile in Firestore
         await setDoc(doc(db, 'users', userCred.user.uid), {
           username: username,
           balance: 0,
@@ -43,14 +62,29 @@ export default function AuthPage() {
           isVerified: username.toLowerCase() === 'dew',
           uid: userCred.user.uid
         });
+        
         toast({ title: "Account created!", description: "Welcome to KoroneBet!" });
         router.push('/');
       }
     } catch (error: any) {
+      let errorMessage = "An unexpected error occurred.";
+      
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = "Username is already taken. Try logging in.";
+      } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+        errorMessage = "Invalid username or password.";
+      } else if (error.code === 'auth/operation-not-allowed') {
+        errorMessage = "Email/Password sign-in is not enabled in Firebase Console.";
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = "Network error. Please check your connection.";
+      } else {
+        errorMessage = error.message;
+      }
+
       toast({ 
         variant: "destructive", 
-        title: "Auth Error", 
-        description: error.message 
+        title: "Authentication Failed", 
+        description: errorMessage 
       });
     } finally {
       setLoading(false);
@@ -62,7 +96,7 @@ export default function AuthPage() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-purple p-8 rounded-[32px] w-full max-w-md border-2 border-primary/20 space-y-6"
+        className="glass-purple p-8 rounded-[32px] w-full max-w-md border-2 border-primary/20 space-y-6 shadow-[0_0_50px_rgba(200,153,255,0.1)]"
       >
         <div className="text-center space-y-2">
           <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center border-2 border-primary/40 mx-auto mb-4">
@@ -101,7 +135,7 @@ export default function AuthPage() {
         <Button 
           onClick={handleAuth}
           disabled={loading}
-          className="w-full h-14 text-lg font-black bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl shadow-[0_0_20px_rgba(200,153,255,0.3)]"
+          className="w-full h-14 text-lg font-black bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl shadow-[0_0_20px_rgba(200,153,255,0.3)] transition-all hover:scale-[1.02]"
         >
           {loading ? <Loader2 className="animate-spin" /> : (
             <div className="flex items-center gap-2">
@@ -119,6 +153,15 @@ export default function AuthPage() {
             {isLogin ? "Don't have an account? Sign up" : "Already have an account? Login"}
           </button>
         </div>
+
+        {!isLogin && (
+          <div className="p-3 bg-primary/5 rounded-xl border border-primary/10 flex items-start gap-3">
+            <AlertCircle className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              By registering, you agree to our terms of service. New players start with 0 Robux.
+            </p>
+          </div>
+        )}
       </motion.div>
     </div>
   );
