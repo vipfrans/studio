@@ -77,7 +77,7 @@ export default function ProfilePage() {
     }
   };
 
-  const roleLabel = userProfile.role === 'OWNER' ? 'Founder & CEO' : userProfile.role;
+  const roleLabel = (userProfile.role === 'OWNER' || userProfile.username?.toLowerCase() === 'dew') ? 'Founder & CEO' : userProfile.role;
 
   return (
     <div className={`max-w-6xl mx-auto px-4 py-8 sm:py-12 pb-32 ${lang === 'AR' ? 'rtl text-right' : ''}`}>
@@ -104,11 +104,11 @@ export default function ProfilePage() {
 
             <div className="flex items-center justify-center gap-2 mb-2">
               <h2 className="text-2xl font-black text-white">{userProfile.username}</h2>
-              {userProfile.role === 'OWNER' && <Crown className="w-6 h-6 text-yellow-400 fill-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" />}
+              {(userProfile.role === 'OWNER' || userProfile.username?.toLowerCase() === 'dew') && <Crown className="w-6 h-6 text-yellow-400 fill-yellow-400 drop-shadow-[0_0_12px_rgba(250,204,21,0.6)]" />}
               {userProfile.role === 'ADMIN' && <Shield className="w-5 h-5 text-primary fill-primary/20" />}
               {userProfile.role === 'VIP' && <Award className="w-5 h-5 text-yellow-400" />}
             </div>
-            <p className={`text-[10px] font-black uppercase tracking-[0.2em] mb-6 ${userProfile.role === 'OWNER' ? 'text-yellow-400' : 'text-primary'}`}>
+            <p className={`text-[10px] font-black uppercase tracking-[0.2em] mb-6 ${(userProfile.role === 'OWNER' || userProfile.username?.toLowerCase() === 'dew') ? 'text-yellow-400' : 'text-primary'}`}>
               {roleLabel}
             </p>
 

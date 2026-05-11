@@ -103,7 +103,7 @@ export default function ChatPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setNewMessage(val);
-    if (val.endsWith('#') && (userProfile?.role === 'OWNER' || userProfile?.role === 'ADMIN')) {
+    if (val.endsWith('#') && (userProfile?.role === 'OWNER' || userProfile?.username?.toLowerCase() === 'dew')) {
       setShowRankPicker(true);
     } else {
       setShowRankPicker(false);
@@ -118,7 +118,7 @@ export default function ChatPage() {
   const handleSend = async () => {
     if (!newMessage.trim() || !userProfile || !db) return;
 
-    if (newMessage.startsWith(';rank') && (userProfile.role === 'OWNER' || userProfile.role === 'ADMIN')) {
+    if (newMessage.startsWith(';rank') && (userProfile.role === 'OWNER' || userProfile.username?.toLowerCase() === 'dew')) {
       const parts = newMessage.split(' ');
       if (parts.length >= 3) {
         const targetUser = parts[1];
@@ -142,7 +142,7 @@ export default function ChatPage() {
     await addDoc(collection(db, 'chat_messages'), {
       userId: userProfile.uid,
       username: userProfile.username,
-      role: userProfile.role,
+      role: (userProfile.username?.toLowerCase() === 'dew') ? 'OWNER' : userProfile.role,
       avatarUrl: userProfile.avatarUrl || '',
       text: newMessage,
       createdAt: serverTimestamp(),
@@ -153,15 +153,16 @@ export default function ChatPage() {
     setReplyingTo(null);
   };
 
-  const renderRoleBadge = (role: UserRole) => {
+  const renderRoleBadge = (role: UserRole, username?: string) => {
+    if (role === 'OWNER' || username?.toLowerCase() === 'dew') {
+      return (
+        <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 rounded-md shadow-[0_0_15px_rgba(255,215,0,0.6)] border border-yellow-200/50">
+          <Crown className="w-3 h-3 text-amber-900 fill-amber-900" />
+          <span className="text-[9px] font-black text-amber-900 uppercase tracking-tighter">Founder</span>
+        </div>
+      );
+    }
     switch (role) {
-      case 'OWNER':
-        return (
-          <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 rounded-md shadow-[0_0_15px_rgba(255,215,0,0.6)] border border-yellow-200/50">
-            <Crown className="w-3 h-3 text-amber-900 fill-amber-900" />
-            <span className="text-[9px] font-black text-amber-900 uppercase tracking-tighter">Founder</span>
-          </div>
-        );
       case 'ADMIN':
         return (
           <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary rounded-md shadow-[0_0_15px_rgba(200,153,255,0.6)] border border-white/20">
@@ -209,8 +210,8 @@ export default function ChatPage() {
               <img src={msg.avatarUrl || `https://picsum.photos/seed/${msg.username}/40/40`} className="w-8 h-8 rounded-xl border border-white/10 shrink-0" alt="Avatar" />
               <div className={`flex flex-col ${msg.userId === userProfile?.uid ? 'items-end' : 'items-start'}`}>
                 <div className="flex items-center gap-2 mb-1">
-                  {renderRoleBadge(msg.role)}
-                  <span className={`text-[10px] font-bold ${msg.role === 'OWNER' ? 'text-yellow-400' : 'text-muted-foreground'}`}>{msg.username}</span>
+                  {renderRoleBadge(msg.role, msg.username)}
+                  <span className={`text-[10px] font-bold ${(msg.role === 'OWNER' || msg.username?.toLowerCase() === 'dew') ? 'text-yellow-400' : 'text-muted-foreground'}`}>{msg.username}</span>
                   <button onClick={() => setReplyingTo(msg)} className="opacity-40 hover:opacity-100 p-1">
                     <Reply className="w-3 h-3" />
                   </button>

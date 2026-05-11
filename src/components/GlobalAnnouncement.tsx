@@ -103,7 +103,7 @@ export const GlobalAnnouncement = () => {
                     <ShieldCheck className="w-3.5 h-3.5 text-primary fill-primary/20 shrink-0" />
                   )}
                   <span className="text-[8px] font-black text-primary px-1.5 py-0.5 bg-primary/10 rounded border border-primary/20 uppercase shrink-0">
-                    {activeAnn.senderRank || 'Founder & CEO'}
+                    {activeAnn.senderRank}
                   </span>
                 </div>
 

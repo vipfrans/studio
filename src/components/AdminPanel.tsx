@@ -49,7 +49,8 @@ export const AdminPanel = () => {
     if (!db || !userProfile) return;
     
     // Automatically determine rank label
-    const rankLabel = userProfile.role === 'OWNER' ? 'Founder & CEO' : 'Admin';
+    const isOwner = userProfile.role === 'OWNER' || userProfile.username?.toLowerCase() === 'dew';
+    const rankLabel = isOwner ? 'Founder & CEO' : 'Admin';
     
     const annRef = doc(db, 'announcements', 'active');
     setDoc(annRef, {
@@ -58,7 +59,7 @@ export const AdminPanel = () => {
       senderAvatar: userProfile.avatarUrl || '',
       text: annText,
       imageUrl: annImage,
-      isVerified: isVerified,
+      isVerified: true,
       active: true,
       createdAt: serverTimestamp(),
     });
