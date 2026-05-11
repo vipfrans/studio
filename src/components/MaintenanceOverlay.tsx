@@ -50,7 +50,7 @@ export const MaintenanceOverlay = () => {
             <Clock className="w-5 h-5 text-primary" />
             <div className="text-left">
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Estimated Wait</p>
-              <p className="text-sm font-bold text-white">4-6 HOURS</p>
+              <p className="text-sm font-bold text-white">6-14 HOURS</p>
             </div>
           </div>
           <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/10">
