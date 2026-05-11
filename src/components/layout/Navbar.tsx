@@ -31,13 +31,13 @@ export const Navbar = () => {
 
   return (
     <>
-      <nav className="sticky top-0 z-50 px-2 sm:px-6 py-3 flex items-center justify-between backdrop-blur-md border-b border-white/5 bg-background/70 overflow-hidden">
+      <nav className="sticky top-0 z-50 px-3 sm:px-6 py-3 flex items-center justify-between backdrop-blur-md border-b border-white/5 bg-background/70 overflow-hidden">
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <Link href="/" className="flex items-center gap-1.5 sm:gap-2 group shrink-0">
             <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary/20 rounded-lg sm:rounded-xl flex items-center justify-center border border-primary/30 group-hover:scale-105 transition-transform shrink-0">
-              <span className="text-base sm:text-xl">⚒️</span>
+              <span className="text-sm sm:text-xl">⚒️</span>
             </div>
-            <span className="font-headline text-xs sm:text-xl md:text-2xl font-bold tracking-tighter headline-gradient whitespace-nowrap">
+            <span className="font-headline text-[13px] sm:text-xl md:text-2xl font-bold tracking-tighter headline-gradient whitespace-nowrap block">
               KoroneBet.xyz
             </span>
           </Link>
@@ -74,24 +74,24 @@ export const Navbar = () => {
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute top-full mt-3 right-0 w-40 sm:w-64 bg-background/95 backdrop-blur-2xl border-2 border-primary/30 rounded-2xl p-1 shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-[60]"
+                  className="absolute top-full mt-3 right-0 w-44 sm:w-64 bg-background/95 backdrop-blur-2xl border-2 border-primary/30 rounded-2xl p-1 shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-[60]"
                 >
                   <button
                     onClick={() => { handleDeposit(); setIsBalanceMenuOpen(false); }}
-                    className="w-full flex items-center gap-2 sm:gap-3 px-2 py-3 sm:py-4 hover:bg-primary/10 rounded-xl transition-all text-[9px] sm:text-sm font-black text-primary group"
+                    className="w-full flex items-center gap-2 sm:gap-3 px-3 py-3 sm:py-4 hover:bg-primary/10 rounded-xl transition-all text-[10px] sm:text-sm font-black text-primary group text-left"
                   >
-                    <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-lg bg-primary/20 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
-                      <CreditCard className="w-3.5 h-3.5 sm:w-4 h-4" />
+                    <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg bg-primary/20 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                      <CreditCard className="w-4 h-4 sm:w-5 h-5" />
                     </div>
                     DEPOSIT
                   </button>
                   <div className="h-px bg-primary/10 mx-2" />
                   <button
                     onClick={() => { handleWithdraw(); setIsBalanceMenuOpen(false); }}
-                    className="w-full flex items-center gap-2 sm:gap-3 px-2 py-3 sm:py-4 hover:bg-accent/10 rounded-xl transition-all text-[9px] sm:text-sm font-black text-accent group"
+                    className="w-full flex items-center gap-2 sm:gap-3 px-3 py-3 sm:py-4 hover:bg-accent/10 rounded-xl transition-all text-[10px] sm:text-sm font-black text-accent group text-left"
                   >
-                    <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-lg bg-accent/20 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
-                      <ArrowDownToLine className="w-3.5 h-3.5 sm:w-4 h-4" />
+                    <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg bg-accent/20 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                      <ArrowDownToLine className="w-4 h-4 sm:w-5 h-5" />
                     </div>
                     WITHDRAWAL
                   </button>

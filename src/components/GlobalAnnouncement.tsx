@@ -7,56 +7,60 @@ import { Megaphone, ShieldCheck, X } from 'lucide-react';
 import { useDoc, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
-const ANNOUNCEMENT_DURATION = 15000; // 15 seconds
+const ANNOUNCEMENT_DURATION = 10000; // 10 seconds
 
 export const GlobalAnnouncement = () => {
   const db = useFirestore();
   const annDoc = useDoc(db ? doc(db, 'announcements', 'active') : null);
   const announcement = annDoc.data as any;
 
-  const [isVisible, setIsVisible] = useState(false);
-  const [currentAnnId, setCurrentAnnId] = useState<string | null>(null);
+  const [activeAnn, setActiveAnn] = useState<any>(null);
+  const [show, setShow] = useState(false);
 
   useEffect(() => {
     if (announcement && announcement.active) {
-      // Create a unique ID based on creation time to trigger a fresh display cycle
+      // Create a stable unique ID
       const annId = announcement.createdAt?.seconds?.toString() || JSON.stringify(announcement);
       
-      if (annId !== currentAnnId) {
-        setCurrentAnnId(annId);
-        setIsVisible(true);
+      // If it's a brand new announcement that we haven't shown or is different from the last one
+      if (!activeAnn || activeAnn.id !== annId) {
+        setActiveAnn({ ...announcement, id: annId });
+        setShow(true);
 
-        // This local timer ensures the message disappears regardless of network latency or DB state
         const timer = setTimeout(() => {
-          setIsVisible(false);
+          setShow(false);
         }, ANNOUNCEMENT_DURATION);
 
         return () => clearTimeout(timer);
       }
-    } else {
-      setIsVisible(false);
+    } else if (announcement && !announcement.active) {
+      setShow(false);
     }
-  }, [announcement, currentAnnId]);
+  }, [announcement, activeAnn]);
 
   const handleManualDismiss = () => {
-    setIsVisible(false);
+    setShow(false);
   };
+
+  if (!db) return null;
 
   return (
     <AnimatePresence mode="wait">
-      {isVisible && announcement && (
+      {show && activeAnn && (
         <motion.div
-          key={currentAnnId} // Unique key ensures AnimatePresence works correctly
-          initial={{ y: -100, x: '-50%', opacity: 0 }}
-          animate={{ y: 0, x: '-50%', opacity: 1 }}
+          key={activeAnn.id}
+          initial={{ y: -150, x: '-50%', opacity: 0, scale: 0.9 }}
+          animate={{ y: 0, x: '-50%', opacity: 1, scale: 1 }}
           exit={{ 
             y: -150, 
             x: '-50%', 
             opacity: 0,
-            transition: { duration: 0.8, ease: "backIn" }
+            scale: 0.8,
+            filter: 'blur(12px)',
+            transition: { duration: 0.6, ease: "easeIn" }
           }}
-          transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] w-[95%] sm:w-[90%] max-w-2xl px-2"
+          transition={{ type: "spring", stiffness: 260, damping: 20 }}
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] w-[95%] sm:w-[90%] max-w-2xl px-2 pointer-events-auto"
         >
           <div className="glass-purple p-4 rounded-2xl border-2 border-accent/40 shadow-[0_0_50px_rgba(255,153,230,0.3)] relative overflow-hidden">
             <div className="relative flex items-start gap-3 sm:gap-4">
@@ -75,8 +79,8 @@ export const GlobalAnnouncement = () => {
                 </div>
 
                 <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-                  <span className="font-bold text-white text-sm truncate max-w-[120px]">{announcement.senderName}</span>
-                  {announcement.isVerified && (
+                  <span className="font-bold text-white text-sm truncate max-w-[150px]">{activeAnn.senderName}</span>
+                  {activeAnn.isVerified && (
                     <ShieldCheck className="w-3.5 h-3.5 text-primary fill-primary/20 shrink-0" />
                   )}
                   <span className="text-[8px] font-black text-primary px-1.5 py-0.5 bg-primary/10 rounded border border-primary/20 uppercase shrink-0">
@@ -85,13 +89,13 @@ export const GlobalAnnouncement = () => {
                 </div>
 
                 <p className="text-white/90 text-xs sm:text-sm leading-relaxed break-words">
-                  {announcement.text}
+                  {activeAnn.text}
                 </p>
 
-                {announcement.imageUrl && (
+                {activeAnn.imageUrl && (
                   <div className="mt-3 rounded-lg overflow-hidden border border-white/10">
                     <img 
-                      src={announcement.imageUrl} 
+                      src={activeAnn.imageUrl} 
                       alt="Announcement" 
                       className="w-full h-auto max-h-32 sm:max-h-40 object-cover"
                     />
@@ -100,14 +104,14 @@ export const GlobalAnnouncement = () => {
               </div>
             </div>
 
-            {/* Progress Bar with key-based reset for every new announcement */}
+            {/* Progress Bar */}
             <div className="absolute bottom-0 left-0 w-full h-1 bg-white/5">
               <motion.div
-                key={`bar-${currentAnnId}`}
+                key={`bar-${activeAnn.id}`}
                 initial={{ width: '100%' }}
                 animate={{ width: '0%' }}
                 transition={{ duration: ANNOUNCEMENT_DURATION / 1000, ease: 'linear' }}
-                className="h-full bg-accent shadow-[0_0_10px_rgba(255,153,230,1)]"
+                className="h-full bg-accent shadow-[0_0_15px_rgba(255,153,230,1)]"
               />
             </div>
           </div>
