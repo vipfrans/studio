@@ -31,6 +31,7 @@ export default function RocketPage() {
   const [multiplier, setMultiplier] = useState(1.00);
   const [gameState, setGameState] = useState<'waiting' | 'flying' | 'crashed'>('waiting');
   const [hasCashedOut, setHasCashedOut] = useState(false);
+  const [isUserInRound, setIsUserInRound] = useState(false);
   const [history, setHistory] = useState<number[]>([1.45, 12.4, 2.1, 1.05, 5.5]);
   const [activeBets, setActiveBets] = useState<PlayerBet[]>([]);
   const [countdown, setCountdown] = useState(5);
@@ -39,13 +40,6 @@ export default function RocketPage() {
   const gameIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const playerJoinIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      stopAllIntervals();
-    };
-  }, []);
 
   const stopAllIntervals = () => {
     if (gameIntervalRef.current) clearInterval(gameIntervalRef.current);
@@ -56,69 +50,71 @@ export default function RocketPage() {
     playerJoinIntervalRef.current = null;
   };
 
-  // Handle Game States
   useEffect(() => {
-    if (gameState === 'waiting') {
-      stopAllIntervals();
-      setMultiplier(1.00);
-      multiplierRef.current = 1.00;
-      setCountdown(5);
-      setActiveBets([]);
+    initWaitingPhase();
+    return () => stopAllIntervals();
+  }, []);
 
-      // Countdown interval
-      countdownIntervalRef.current = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) {
-            startFlying();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+  const initWaitingPhase = () => {
+    stopAllIntervals();
+    setGameState('waiting');
+    setMultiplier(1.00);
+    multiplierRef.current = 1.00;
+    setCountdown(5);
+    setActiveBets([]);
+    setHasCashedOut(false);
+    setIsUserInRound(false);
 
-      // Simulated players joining one by one
-      playerJoinIntervalRef.current = setInterval(() => {
-        if (activeBets.length < 15) {
-          const randomName = REALISTIC_NAMES[Math.floor(Math.random() * REALISTIC_NAMES.length)];
-          const alreadyJoined = activeBets.some(p => p.user === randomName);
-          
-          if (!alreadyJoined) {
-            const newPlayer: PlayerBet = {
-              user: randomName,
-              bet: Math.floor(Math.random() * 5000) + 50,
-              targetMultiplier: 1.1 + (Math.random() * 8),
-              cashedOut: false
-            };
-            setActiveBets(prev => [...prev, newPlayer]);
-          }
+    // Countdown logic
+    countdownIntervalRef.current = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          startFlying();
+          return 0;
         }
-      }, 600);
+        return prev - 1;
+      });
+    }, 1000);
 
-    }
-  }, [gameState]);
+    // Simulated players join one by one
+    playerJoinIntervalRef.current = setInterval(() => {
+      setActiveBets(prev => {
+        if (prev.length >= 12) return prev;
+        
+        const randomName = REALISTIC_NAMES[Math.floor(Math.random() * REALISTIC_NAMES.length)];
+        if (prev.some(p => p.user === randomName)) return prev;
+
+        const newPlayer: PlayerBet = {
+          user: randomName,
+          bet: Math.floor(Math.random() * 5000) + 50,
+          targetMultiplier: 1.2 + (Math.random() * 10),
+          cashedOut: false
+        };
+        return [...prev, newPlayer];
+      });
+    }, 800);
+  };
 
   const startFlying = () => {
     stopAllIntervals();
     setGameState('flying');
-    setHasCashedOut(false);
 
     gameIntervalRef.current = setInterval(() => {
-      // Exponential-ish growth
-      const increment = 0.005 + (multiplierRef.current * 0.006);
+      const increment = 0.005 + (multiplierRef.current * 0.007);
       multiplierRef.current += increment;
       const currentMult = Number(multiplierRef.current.toFixed(2));
       setMultiplier(currentMult);
 
       // Check simulated players cash out
       setActiveBets(prev => prev.map(p => {
-        if (!p.cashedOut && currentMult >= p.targetMultiplier) {
+        if (p.user !== 'You' && !p.cashedOut && currentMult >= p.targetMultiplier) {
           return { ...p, cashedOut: true, cashedOutAt: currentMult };
         }
         return p;
       }));
 
-      // Crash chance increases with multiplier
-      const crashChance = 0.003 + (multiplierRef.current * 0.0015);
+      // Crash chance
+      const crashChance = 0.002 + (multiplierRef.current * 0.0018);
       if (Math.random() < crashChance) {
         crashGame();
       }
@@ -131,27 +127,27 @@ export default function RocketPage() {
     const finalMult = Number(multiplierRef.current.toFixed(2));
     setHistory(prev => [finalMult, ...prev].slice(0, 10));
     
-    // Pause for 4 seconds on crash screen before resetting
     setTimeout(() => {
-      setGameState('waiting');
+      initWaitingPhase();
     }, 4000);
   };
 
   const handlePlaceBet = () => {
-    if (gameState !== 'waiting' || balance < betAmount) return;
+    if (gameState !== 'waiting' || balance < betAmount || isUserInRound) return;
     removeRobux(betAmount);
-    // User joins manually
+    setIsUserInRound(true);
+    
     const userBet: PlayerBet = {
       user: 'You',
       bet: betAmount,
-      targetMultiplier: 999, // manual cashout
+      targetMultiplier: 999,
       cashedOut: false
     };
     setActiveBets(prev => [userBet, ...prev]);
   };
 
   const handleUserCashOut = () => {
-    if (gameState !== 'flying' || hasCashedOut) return;
+    if (gameState !== 'flying' || hasCashedOut || !isUserInRound) return;
     const win = Math.floor(betAmount * multiplier);
     addRobux(win);
     setHasCashedOut(true);
@@ -169,7 +165,6 @@ export default function RocketPage() {
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Controls */}
         <div className="glass p-6 rounded-3xl h-fit border-white/5 space-y-6">
           <h2 className="font-headline text-2xl font-bold flex items-center gap-2">
             <RocketIcon className="w-6 h-6 text-primary" />
@@ -185,7 +180,7 @@ export default function RocketPage() {
                   value={betAmount} 
                   onChange={(e) => setBetAmount(Number(e.target.value))}
                   className="bg-background/50 border-white/10 h-12 pl-10"
-                  disabled={gameState !== 'waiting'}
+                  disabled={gameState !== 'waiting' || isUserInRound}
                 />
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary font-bold">R$</span>
               </div>
@@ -194,21 +189,26 @@ export default function RocketPage() {
             {gameState === 'waiting' ? (
               <Button 
                 onClick={handlePlaceBet}
-                className="w-full h-14 text-lg font-black bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl glow-purple"
+                disabled={isUserInRound}
+                className={`w-full h-14 text-lg font-black rounded-2xl transition-all ${
+                  isUserInRound 
+                    ? 'bg-primary/20 text-primary border border-primary/30' 
+                    : 'bg-primary hover:bg-primary/90 text-primary-foreground glow-purple'
+                }`}
               >
-                PLACE BET
+                {isUserInRound ? 'BET PLACED' : 'PLACE BET'}
               </Button>
             ) : gameState === 'flying' ? (
               <Button 
                 onClick={handleUserCashOut}
-                disabled={hasCashedOut}
+                disabled={hasCashedOut || !isUserInRound}
                 className={`w-full h-14 text-lg font-black rounded-2xl transition-all ${
-                  hasCashedOut 
+                  hasCashedOut || !isUserInRound
                     ? 'bg-white/10 text-muted-foreground' 
                     : 'bg-success text-background hover:bg-success/90 hover:scale-[1.02]'
                 }`}
               >
-                {hasCashedOut ? 'CASHED OUT' : `CASH OUT (R$ ${Math.floor(betAmount * multiplier)})`}
+                {!isUserInRound ? 'ROUND IN PROGRESS' : hasCashedOut ? 'CASHED OUT' : `CASH OUT (R$ ${Math.floor(betAmount * multiplier)})`}
               </Button>
             ) : (
               <Button disabled className="w-full h-14 text-lg font-black bg-red-500/20 text-red-500 border border-red-500/50 rounded-2xl">
@@ -228,18 +228,18 @@ export default function RocketPage() {
                     key={`${player.user}-${i}`}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className={`flex justify-between items-center text-sm p-2 rounded-lg ${player.user === 'You' ? 'bg-primary/10 border border-primary/20' : 'bg-white/5'}`}
+                    className={`flex justify-between items-center text-sm p-2.5 rounded-xl ${player.user === 'You' ? 'bg-primary/10 border border-primary/30' : 'bg-white/5'}`}
                   >
                     <span className={`font-medium ${player.user === 'You' ? 'text-primary' : 'text-muted-foreground'}`}>
                       {player.user}
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-white/60">R$ {player.bet}</span>
+                      <span className="font-bold text-white/40">R$ {player.bet}</span>
                       {player.cashedOut && (
                         <motion.span 
-                          initial={{ scale: 0.5, opacity: 0 }}
+                          initial={{ scale: 0.8, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
-                          className="text-primary font-black text-sm drop-shadow-[0_0_12px_rgba(200,153,255,1)] px-2 py-0.5 rounded-md bg-primary/20"
+                          className="text-primary font-black text-sm drop-shadow-[0_0_12px_rgba(200,153,255,1)] px-2 py-0.5 rounded-md bg-primary/20 border border-primary/20"
                         >
                           {player.cashedOutAt?.toFixed(2)}x
                         </motion.span>
@@ -248,16 +248,10 @@ export default function RocketPage() {
                   </motion.div>
                 ))}
               </AnimatePresence>
-              {activeBets.length === 0 && gameState === 'waiting' && (
-                <div className="text-center py-4 text-xs text-muted-foreground italic animate-pulse">
-                  Players are joining...
-                </div>
-              )}
             </div>
           </div>
         </div>
 
-        {/* Graph Area */}
         <div className="lg:col-span-3 space-y-6">
           <div className="flex gap-3 overflow-hidden">
             {history.map((h, i) => (
@@ -267,7 +261,7 @@ export default function RocketPage() {
             ))}
           </div>
 
-          <div className="glass-purple h-[500px] rounded-[40px] relative overflow-hidden flex items-center justify-center border-2 border-primary/20">
+          <div className="glass-purple h-[500px] rounded-[40px] relative overflow-hidden flex items-center justify-center border-2 border-primary/20 shadow-2xl">
             {gameState === 'waiting' && (
               <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-background/40 backdrop-blur-md">
                 <div className="text-muted-foreground font-bold mb-2 uppercase tracking-widest text-sm">Next Round Starting In</div>
@@ -281,7 +275,7 @@ export default function RocketPage() {
                 </motion.div>
                 <div className="mt-4 flex items-center gap-2 text-xs text-white/40">
                   <Users className="w-4 h-4" />
-                  <span>{activeBets.length} Players Ready</span>
+                  <span>{activeBets.length} Players Waiting</span>
                 </div>
               </div>
             )}
@@ -292,7 +286,6 @@ export default function RocketPage() {
               </span>
             </div>
 
-            {/* Simulated Graph Line */}
             <svg className="absolute bottom-0 left-0 w-full h-full pointer-events-none">
               <motion.path
                 d={`M 0 500 Q ${gameState === 'flying' ? 400 : 0} ${gameState === 'flying' ? 500 - (multiplier * 25) : 500} 1200 ${gameState === 'flying' ? 500 - (multiplier * 50) : 500}`}
@@ -328,8 +321,8 @@ export default function RocketPage() {
                     <Zap className="w-14 h-14 text-red-500 fill-red-500" />
                   </motion.div>
                   <h3 className="text-8xl font-headline font-black text-red-500 mb-2 drop-shadow-[0_0_40px_rgba(255,0,0,0.6)]">CRASHED!</h3>
-                  <p className="text-3xl text-muted-foreground">The Rocket exploded at <span className="text-white font-bold">{multiplier.toFixed(2)}x</span></p>
-                  <div className="mt-8 text-primary font-bold animate-pulse">PREPARING NEW LAUNCH...</div>
+                  <p className="text-3xl text-muted-foreground">Exploded at <span className="text-white font-bold">{multiplier.toFixed(2)}x</span></p>
+                  <div className="mt-8 text-primary font-bold animate-pulse">REPARING NEW LAUNCH...</div>
                 </motion.div>
               )}
             </AnimatePresence>
