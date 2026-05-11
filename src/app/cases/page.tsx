@@ -26,7 +26,7 @@ export default function CasesPage() {
         
         <div className="relative w-32 h-32 mx-auto">
           <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse" />
-          <div className="relative w-full h-full bg-primary/10 rounded-[40px] flex items-center justify-center border-2 border-primary/30 rotate-12 group-hover:rotate-0 transition-transform duration-500 shadow-2xl">
+          <div className="relative w-full h-full bg-primary/10 rounded-[40px] flex items-center justify-center border-2 border-primary/30 rotate-12 transition-transform duration-500 shadow-2xl">
             <Box className="w-16 h-16 text-primary" />
             <Lock className="absolute -bottom-2 -right-2 w-10 h-10 text-accent bg-background rounded-full p-2 border-2 border-accent/20 shadow-lg" />
           </div>
