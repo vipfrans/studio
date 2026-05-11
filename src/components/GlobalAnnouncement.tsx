@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Megaphone, ShieldCheck, X } from 'lucide-react';
 import { useDoc, useFirestore } from '@/firebase';
@@ -15,17 +15,24 @@ export const GlobalAnnouncement = () => {
   const announcement = annDoc.data as any;
 
   const [isVisible, setIsVisible] = useState(false);
-  const [lastAnnId, setLastAnnId] = useState<string | null>(null);
+  const [currentAnnId, setCurrentAnnId] = useState<string | null>(null);
+
+  const handleManualDismiss = useCallback(async () => {
+    setIsVisible(false);
+  }, []);
 
   useEffect(() => {
     if (announcement && announcement.active) {
-      const currentId = announcement.createdAt?.seconds?.toString() || announcement.text;
-      if (currentId !== lastAnnId) {
-        setLastAnnId(currentId);
+      const annId = announcement.createdAt?.seconds?.toString() || announcement.text;
+      
+      // If it's a new announcement id, show it
+      if (annId !== currentAnnId) {
+        setCurrentAnnId(annId);
         setIsVisible(true);
 
+        // Auto hide after duration
         const timer = setTimeout(() => {
-          handleAutoDismiss();
+          setIsVisible(false);
         }, ANNOUNCEMENT_DURATION);
 
         return () => clearTimeout(timer);
@@ -33,33 +40,27 @@ export const GlobalAnnouncement = () => {
     } else {
       setIsVisible(false);
     }
-  }, [announcement]);
-
-  const handleAutoDismiss = () => {
-    setIsVisible(false);
-    // We don't necessarily need to clear Firestore here to allow others to see it,
-    // but the local state handles the exit animation.
-  };
-
-  const handleManualDismiss = async () => {
-    setIsVisible(false);
-    if (db) {
-      const annRef = doc(db, 'announcements', 'active');
-      await updateDoc(annRef, { active: false });
-    }
-  };
+  }, [announcement, currentAnnId]);
 
   return (
     <AnimatePresence>
       {isVisible && announcement && (
         <motion.div
-          initial={{ y: -120, x: '-50%', opacity: 0, scale: 0.8 }}
+          key={currentAnnId}
+          initial={{ y: -150, x: '-50%', opacity: 0, scale: 0.8 }}
           animate={{ y: 0, x: '-50%', opacity: 1, scale: 1 }}
-          exit={{ y: -120, x: '-50%', opacity: 0, scale: 0.5, filter: 'blur(10px)' }}
+          exit={{ 
+            y: -150, 
+            x: '-50%', 
+            opacity: 0, 
+            scale: 0.5, 
+            filter: 'blur(20px)',
+            transition: { duration: 0.8, ease: "easeInOut" }
+          }}
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
           className="fixed top-20 sm:top-24 left-1/2 -translate-x-1/2 z-[100] w-[95%] sm:w-[90%] max-w-2xl px-2"
         >
-          <div className="glass-purple p-3 sm:p-5 rounded-xl sm:rounded-2xl border-2 border-accent/40 shadow-[0_0_50px_rgba(255,153,230,0.4)] relative overflow-hidden group">
+          <div className="glass-purple p-3 sm:p-5 rounded-xl sm:rounded-2xl border-2 border-accent/40 shadow-[0_0_50px_rgba(255,153,230,0.4)] relative overflow-hidden">
             <div className="absolute inset-0 bg-accent/5 animate-pulse" />
             
             <div className="relative flex items-start gap-3 sm:gap-4">

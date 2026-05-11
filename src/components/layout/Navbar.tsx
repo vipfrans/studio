@@ -32,12 +32,12 @@ export const Navbar = () => {
   return (
     <>
       <nav className="sticky top-0 z-50 px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between backdrop-blur-md border-b border-white/5 bg-background/50">
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <Link href="/" className="flex items-center gap-1.5 sm:gap-2 group">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary/20 rounded-lg sm:rounded-xl flex items-center justify-center border border-primary/30 group-hover:scale-105 transition-transform">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary/20 rounded-lg sm:rounded-xl flex items-center justify-center border border-primary/30 group-hover:scale-105 transition-transform shrink-0">
               <span className="text-base sm:text-xl">⚒️</span>
             </div>
-            <span className="font-headline text-base sm:text-2xl font-bold tracking-tighter headline-gradient">
+            <span className="font-headline text-sm sm:text-2xl font-bold tracking-tighter headline-gradient block">
               KoroneBet.xyz
             </span>
           </Link>
@@ -45,7 +45,7 @@ export const Navbar = () => {
             variant="ghost"
             size="icon"
             onClick={toggleAdmin}
-            className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/5 hover:bg-white/10 border border-white/10"
+            className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 shrink-0"
           >
             <Hammer className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-primary" />
           </Button>
@@ -57,15 +57,15 @@ export const Navbar = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setIsBalanceMenuOpen(!isBalanceMenuOpen)}
-              className="flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 glass-purple rounded-full cursor-pointer hover:bg-primary/10 transition-colors border border-primary/20 z-50"
+              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 glass-purple rounded-full cursor-pointer hover:bg-primary/10 transition-colors border border-primary/20 z-50"
             >
-              <div className="w-4 h-4 sm:w-6 sm:h-6 rounded-full bg-primary/20 flex items-center justify-center">
+              <div className="w-4 h-4 sm:w-6 sm:h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                 <span className="text-[9px] sm:text-xs font-bold text-primary">R$</span>
               </div>
-              <span className="font-headline font-bold text-primary text-xs sm:text-base">
+              <span className="font-headline font-bold text-primary text-[10px] sm:text-base">
                 {balance.toLocaleString()}
               </span>
-              <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 text-primary transition-transform duration-300 ${isBalanceMenuOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-3 h-3 sm:w-4 h-4 text-primary transition-transform duration-300 ${isBalanceMenuOpen ? 'rotate-180' : ''}`} />
             </motion.div>
 
             <AnimatePresence>
@@ -101,7 +101,7 @@ export const Navbar = () => {
             </AnimatePresence>
           </div>
           
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-primary to-accent p-[1.5px] sm:p-[2px]">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-primary to-accent p-[1.5px] sm:p-[2px] shrink-0">
             <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[url('https://picsum.photos/seed/user123/100/100')] bg-cover" />
             </div>
