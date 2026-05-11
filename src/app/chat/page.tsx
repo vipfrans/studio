@@ -30,7 +30,7 @@ interface ChatMessage {
 }
 
 const ROLES: UserRole[] = ['OWNER', 'ADMIN', 'VIP', 'MEMBER', 'USER'];
-const BOT_NAMES = ['Frosty_Blox', 'Lumine_Dev', 'VoidX_Gamer', 'Ghost_Rider', 'Stellar_YT', 'Valk_Queen', 'Rex_Bet', 'Kone_Pro', 'Neon_Vibe', 'Pixel_Pulse'];
+const BOT_NAMES = ['Frosty_Blox', 'Lumine_Dev', 'VoidX_Gamer', 'Ghost_Rider', 'Stellar_YT', 'Valk_Queen', 'Rex_Bet', 'Kone_Pro', 'Neon_Vibe', 'Pixel_Pulse', 'Silent_Ace', 'Storm_Rider', 'Cyber_Punk', 'Valkyrie'];
 const BOT_MESSAGES = [
   "Good luck everyone!",
   "Just hit a 5x on Rocket!",
@@ -50,7 +50,7 @@ const BOT_MESSAGES = [
 
 export default function ChatPage() {
   const db = useFirestore();
-  const { userProfile, lang } = useRobux();
+  const { userProfile, lang, simSettings } = useRobux();
   const { toast } = useToast();
   const [newMessage, setNewMessage] = useState('');
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
@@ -81,28 +81,37 @@ export default function ChatPage() {
   }, [allMessages]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      const shouldSend = Math.random() > 0.6; // Increased frequency
-      if (shouldSend) {
-        const botName = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
-        const botText = BOT_MESSAGES[Math.floor(Math.random() * BOT_MESSAGES.length)];
-        const role: UserRole = Math.random() > 0.85 ? 'VIP' : 'MEMBER';
-        
-        const newSimMsg: ChatMessage = {
-          id: 'sim-' + Date.now(),
-          userId: 'bot',
-          username: botName,
-          role: role,
-          text: botText,
-          avatarUrl: `https://picsum.photos/seed/${botName}/40/40`,
-          createdAt: new Date().toISOString(),
-          isSimulated: true
-        };
-        setSimulatedMessages(prev => [...prev, newSimMsg].slice(-25));
+    if (simSettings.chatMode === 'N') return;
+
+    const getInterval = () => {
+      switch(simSettings.chatMode) {
+        case 'S': return 20000;
+        case 'M': return 10000;
+        case 'T': return 4000;
+        default: return 10000;
       }
-    }, 5000); // Faster interval
+    };
+
+    const interval = setInterval(() => {
+      const botName = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
+      const botText = BOT_MESSAGES[Math.floor(Math.random() * BOT_MESSAGES.length)];
+      const role: UserRole = Math.random() > 0.85 ? 'VIP' : 'MEMBER';
+      
+      const newSimMsg: ChatMessage = {
+        id: 'sim-' + Date.now(),
+        userId: 'bot',
+        username: botName,
+        role: role,
+        text: botText,
+        avatarUrl: `https://picsum.photos/seed/${botName}/40/40`,
+        createdAt: new Date().toISOString(),
+        isSimulated: true
+      };
+      setSimulatedMessages(prev => [...prev, newSimMsg].slice(-25));
+    }, getInterval());
+
     return () => clearInterval(interval);
-  }, []);
+  }, [simSettings.chatMode]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -123,7 +132,6 @@ export default function ChatPage() {
     const text = newMessage.trim();
     if (!text || !userProfile || !db) return;
 
-    // Handle ;daily command
     if (text === ';daily') {
       const userRef = doc(db, 'users', userProfile.uid);
       const userSnap = await getDoc(userRef);

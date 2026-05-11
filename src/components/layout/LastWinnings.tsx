@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Rocket, Bomb, Coins, Box, Users } from 'lucide-react';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, orderBy, limit } from 'firebase/firestore';
+import { useRobux } from '@/context/RobuxContext';
 
 interface Winning {
   id: string;
@@ -25,8 +26,9 @@ const GAME_ICONS = {
 
 export const LastWinnings = () => {
   const db = useFirestore();
+  const { simSettings } = useRobux();
   const [winnings, setWinnings] = useState<Winning[]>([]);
-  const [onlinePlayers, setOnlinePlayers] = useState(3214);
+  const [localOnline, setLocalOnline] = useState(3214);
 
   const winsQuery = useMemo(() => {
     if (!db) return null;
@@ -35,14 +37,17 @@ export const LastWinnings = () => {
 
   const { data: realWins } = useCollection(winsQuery) as any;
 
-  // Add real winnings to the animated queue
+  // Sync with Global Sim Settings
+  useEffect(() => {
+    setLocalOnline(simSettings.onlinePlayers);
+  }, [simSettings.onlinePlayers]);
+
   useEffect(() => {
     if (realWins && realWins.length > 0) {
       const latestReal = realWins[0];
       const winId = latestReal.id || Math.random().toString();
       
       setWinnings(prev => {
-        // Prevent duplicates
         if (prev.some(w => w.id === winId)) return prev;
         
         const newWin: Winning = {
@@ -60,7 +65,7 @@ export const LastWinnings = () => {
 
   useEffect(() => {
     const generateWinning = () => {
-      const users = ['Frosty', 'Lumine', 'VoidX', 'Ghost', 'Stellar', 'Rex', 'Kone', 'Valk'];
+      const users = ['Frosty', 'Lumine', 'VoidX', 'Ghost', 'Stellar', 'Rex', 'Kone', 'Valk', 'Vortex', 'Pulse'];
       const games = ['Rocket', 'Mines', 'Coinflip', 'Cases'] as const;
       const newUser = users[Math.floor(Math.random() * users.length)];
       const game = games[Math.floor(Math.random() * games.length)];
@@ -83,17 +88,14 @@ export const LastWinnings = () => {
 
   useEffect(() => {
     const updateOnlinePlayers = () => {
-      setOnlinePlayers(prev => {
+      setLocalOnline(prev => {
         const change = Math.floor(Math.random() * 15) - 7;
-        const newValue = prev + change;
-        return Math.max(3150, Math.min(3350, newValue));
+        return Math.max(simSettings.onlinePlayers - 50, Math.min(simSettings.onlinePlayers + 50, prev + change));
       });
-      const nextTime = Math.floor(Math.random() * 5000) + 10000;
-      setTimeout(updateOnlinePlayers, nextTime);
     };
-    const initialTimeout = setTimeout(updateOnlinePlayers, 10000);
-    return () => clearTimeout(initialTimeout);
-  }, []);
+    const interval = setInterval(updateOnlinePlayers, 5000);
+    return () => clearInterval(interval);
+  }, [simSettings.onlinePlayers]);
 
   return (
     <div className="fixed bottom-0 left-0 right-0 h-16 sm:h-20 glass-purple z-50 overflow-hidden flex items-center px-4 sm:px-6 gap-4 sm:gap-6 border-t-2 border-primary/20 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
@@ -105,7 +107,7 @@ export const LastWinnings = () => {
         <div className="flex items-center gap-1.5 mt-0.5 sm:mt-1">
           <Users className="w-2.5 h-2.5 text-muted-foreground" />
           <span className="text-[8px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-tighter hidden xs:inline">Online:</span>
-          <span className="text-[9px] sm:text-[10px] font-black text-white">{onlinePlayers.toLocaleString()}</span>
+          <span className="text-[9px] sm:text-[10px] font-black text-white">{localOnline.toLocaleString()}</span>
         </div>
       </div>
       

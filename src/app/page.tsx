@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { Rocket, Bomb, Coins, Box, MessageSquare, Gift, TrendingUp, AlertCircle, Users, ArrowRight } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from "@/hooks/use-toast";
+import { useRobux } from '@/context/RobuxContext';
 
 const GAMES = [
   { id: 'rocket', name: 'Rocket', icon: Rocket, color: '#C899FF', href: '/rocket' },
@@ -17,18 +18,23 @@ const GAMES = [
 
 export default function Home() {
   const { toast } = useToast();
+  const { simSettings } = useRobux();
   const [claimStatus, setClaimStatus] = useState('CLAIM NOW');
   const [chatOnline, setChatOnline] = useState(3142);
+
+  useEffect(() => {
+    setChatOnline(simSettings.onlinePlayers);
+  }, [simSettings.onlinePlayers]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setChatOnline(prev => {
         const change = Math.random() > 0.5 ? Math.floor(Math.random() * 5) : -Math.floor(Math.random() * 5);
-        return Math.max(3050, Math.min(3250, prev + change));
+        return Math.max(simSettings.onlinePlayers - 50, Math.min(simSettings.onlinePlayers + 50, prev + change));
       });
     }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [simSettings.onlinePlayers]);
 
   const handleClaim = () => {
     if (claimStatus === 'Error !') return;

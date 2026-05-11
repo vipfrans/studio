@@ -3,7 +3,14 @@
 
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useAuth, useFirestore, useDoc } from '@/firebase';
-import { doc, updateDoc, increment, collection, addDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
+import { doc, updateDoc, increment, collection, addDoc, serverTimestamp, arrayUnion, onSnapshot, setDoc } from 'firebase/firestore';
+
+interface SimSettings {
+  onlinePlayers: number;
+  chatMode: 'N' | 'S' | 'M' | 'T'; // No, Small, Medium, Trend
+  minRocketBots: number;
+  maxRocketBots: number;
+}
 
 interface RobuxContextType {
   balance: number;
@@ -23,7 +30,16 @@ interface RobuxContextType {
   forceCrashTrigger: number;
   triggerImmediateCrash: () => void;
   updateProfile: (data: any) => Promise<void>;
+  simSettings: SimSettings;
+  updateSimSettings: (data: Partial<SimSettings>) => Promise<void>;
 }
+
+const DEFAULT_SIM_SETTINGS: SimSettings = {
+  onlinePlayers: 3142,
+  chatMode: 'M',
+  minRocketBots: 4,
+  maxRocketBots: 14
+};
 
 const RobuxContext = createContext<RobuxContextType | undefined>(undefined);
 
@@ -32,6 +48,7 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const db = useFirestore();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [lang, setLang] = useState<'EN' | 'AR'>('EN');
+  const [simSettings, setSimSettings] = useState<SimSettings>(DEFAULT_SIM_SETTINGS);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -39,6 +56,21 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
     return () => unsubscribe();
   }, [auth]);
+
+  // Global Simulation Settings Listener
+  useEffect(() => {
+    if (!db) return;
+    const settingsRef = doc(db, 'settings', 'simulation');
+    const unsub = onSnapshot(settingsRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setSimSettings(docSnap.data() as SimSettings);
+      } else {
+        // Initialize default settings if not exists
+        setDoc(settingsRef, DEFAULT_SIM_SETTINGS);
+      }
+    });
+    return () => unsub();
+  }, [db]);
 
   const userDocRef = useMemo(() => {
     if (!db || !currentUser) return null;
@@ -114,6 +146,12 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await updateDoc(userDocRef, data);
   };
 
+  const updateSimSettings = async (data: Partial<SimSettings>) => {
+    if (!db) return;
+    const settingsRef = doc(db, 'settings', 'simulation');
+    await updateDoc(settingsRef, data);
+  };
+
   const toggleAdmin = () => setIsAdminOpen(prev => !prev);
   const triggerImmediateCrash = () => setForceCrashTrigger(Date.now());
 
@@ -140,7 +178,9 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setNextCrashMultiplier,
       forceCrashTrigger,
       triggerImmediateCrash,
-      updateProfile
+      updateProfile,
+      simSettings,
+      updateSimSettings
     }}>
       {children}
     </RobuxContext.Provider>

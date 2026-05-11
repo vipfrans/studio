@@ -9,7 +9,7 @@ import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-const REALISTIC_NAMES = ['Frosty_Blox', 'Lumine_Dev', 'VoidX_Gamer', 'Ghost_Rider', 'Stellar_YT', 'Valk_Queen', 'Neon_Player', 'Rex_Bet', 'Kone_Pro', 'Silent_Ace', 'Storm_Rider', 'Pixel_Warrior', 'Cyber_Punk', 'Robo_Gamer'];
+const REALISTIC_NAMES = ['Frosty_Blox', 'Lumine_Dev', 'VoidX_Gamer', 'Ghost_Rider', 'Stellar_YT', 'Valk_Queen', 'Neon_Player', 'Rex_Bet', 'Kone_Pro', 'Silent_Ace', 'Storm_Rider', 'Pixel_Warrior', 'Cyber_Punk', 'Robo_Gamer', 'Elite_King', 'Vortex', 'Pulse', 'Shadow'];
 
 interface PlayerBet {
   user: string;
@@ -21,7 +21,7 @@ interface PlayerBet {
 }
 
 export default function RocketPage() {
-  const { balance, removeRobux, addRobux, recordLoss, nextCrashMultiplier, setNextCrashMultiplier, userProfile, lang } = useRobux();
+  const { balance, removeRobux, addRobux, recordLoss, nextCrashMultiplier, setNextCrashMultiplier, userProfile, lang, simSettings } = useRobux();
   const [betAmount, setBetAmount] = useState(100);
   const [multiplier, setMultiplier] = useState(1.00);
   const [gameState, setGameState] = useState<'waiting' | 'flying' | 'crashed'>('waiting');
@@ -65,7 +65,10 @@ export default function RocketPage() {
       });
     }, 1000);
 
-    const botCount = Math.floor(Math.random() * (14 - 4 + 1)) + 4;
+    // Use Sim Settings for bot count
+    const min = simSettings.minRocketBots || 4;
+    const max = simSettings.maxRocketBots || 14;
+    const botCount = Math.floor(Math.random() * (max - min + 1)) + min;
     const shuffledNames = [...REALISTIC_NAMES].sort(() => 0.5 - Math.random());
     const bots = shuffledNames.slice(0, botCount).map(name => ({
       user: name,

@@ -3,15 +3,16 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Sparkles, Rocket, Megaphone, UserPlus } from 'lucide-react';
+import { X, Sparkles, Rocket, Megaphone, UserPlus, Users, MessageSquare } from 'lucide-react';
 import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Slider } from '@/components/ui/slider';
 import { useFirestore } from '@/firebase';
 import { doc, setDoc, serverTimestamp, collection, query, where, getDocs, updateDoc, increment } from 'firebase/firestore';
 
 export const AdminPanel = () => {
-  const { userProfile, toggleAdmin, setNextCrashMultiplier, triggerImmediateCrash, isVerified } = useRobux();
+  const { userProfile, toggleAdmin, setNextCrashMultiplier, triggerImmediateCrash, simSettings, updateSimSettings } = useRobux();
   const db = useFirestore();
   
   const [targetMult, setTargetMult] = useState('');
@@ -23,7 +24,6 @@ export const AdminPanel = () => {
   const [giftAmount, setGiftAmount] = useState('');
   const [gifting, setGifting] = useState(false);
 
-  // Protection: if not dew or OWNER, don't show
   if (!userProfile || (userProfile.username?.toLowerCase() !== 'dew' && userProfile.role !== 'OWNER')) return null;
 
   const handleGiveRobux = async () => {
@@ -47,8 +47,6 @@ export const AdminPanel = () => {
 
   const handlePostAnnouncement = () => {
     if (!db || !userProfile) return;
-    
-    // Automatically determine rank label
     const isOwner = userProfile.role === 'OWNER' || userProfile.username?.toLowerCase() === 'dew';
     const rankLabel = isOwner ? 'Founder & CEO' : 'Admin';
     
@@ -81,6 +79,60 @@ export const AdminPanel = () => {
       </div>
 
       <div className="space-y-6">
+        {/* Simulation Controls */}
+        <div className="pt-4 border-t border-white/10 space-y-4">
+          <label className="text-[10px] font-black text-primary uppercase mb-3 flex items-center gap-2">
+            <Users className="w-3 h-3" /> Simulation Controls
+          </label>
+          
+          <div className="space-y-2">
+            <p className="text-[8px] text-muted-foreground uppercase font-black">Online Players: {simSettings.onlinePlayers}</p>
+            <Slider 
+              min={500} 
+              max={10000} 
+              step={100} 
+              value={[simSettings.onlinePlayers]} 
+              onValueChange={([val]) => updateSimSettings({ onlinePlayers: val })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-[8px] text-muted-foreground uppercase font-black">Rocket Bots Range: {simSettings.minRocketBots} - {simSettings.maxRocketBots}</p>
+            <div className="flex gap-2">
+              <Input 
+                type="number" 
+                placeholder="Min" 
+                value={simSettings.minRocketBots} 
+                onChange={e => updateSimSettings({ minRocketBots: parseInt(e.target.value) })}
+                className="h-8 text-[10px]"
+              />
+              <Input 
+                type="number" 
+                placeholder="Max" 
+                value={simSettings.maxRocketBots} 
+                onChange={e => updateSimSettings({ maxRocketBots: parseInt(e.target.value) })}
+                className="h-8 text-[10px]"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-[8px] text-muted-foreground uppercase font-black">Chat Frequency: {simSettings.chatMode}</p>
+            <div className="grid grid-cols-4 gap-1">
+              {['N', 'S', 'M', 'T'].map((m) => (
+                <Button 
+                  key={m}
+                  onClick={() => updateSimSettings({ chatMode: m as any })}
+                  variant={simSettings.chatMode === m ? 'default' : 'outline'}
+                  className="h-8 text-[10px] font-bold p-0"
+                >
+                  {m}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Gift Robux */}
         <div className="pt-4 border-t border-white/10">
           <label className="text-[10px] font-black text-success uppercase mb-3 flex items-center gap-2">
@@ -101,10 +153,6 @@ export const AdminPanel = () => {
             <Megaphone className="w-3 h-3" /> Broadcast Message
           </label>
           <div className="space-y-2">
-            <div className="p-2 bg-white/5 rounded-lg border border-white/10 mb-2">
-              <p className="text-[8px] text-muted-foreground uppercase font-black">Posting as:</p>
-              <p className="text-[10px] font-bold text-white">{userProfile.username} (Founder & CEO)</p>
-            </div>
             <Input placeholder="Message Content" value={annText} onChange={e => setAnnText(e.target.value)} className="h-8 text-xs" />
             <Input placeholder="Optional Image URL" value={annImage} onChange={e => setAnnImage(e.target.value)} className="h-8 text-xs" />
             <Button onClick={handlePostAnnouncement} className="w-full h-8 bg-accent text-background text-[10px] font-bold">BROADCAST</Button>
