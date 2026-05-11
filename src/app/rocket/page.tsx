@@ -35,26 +35,46 @@ export default function RocketPage() {
   const [countdown, setCountdown] = useState(5);
 
   const multiplierRef = useRef(1.00);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const gameIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto Game Loop
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (gameIntervalRef.current) clearInterval(gameIntervalRef.current);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    };
+  }, []);
+
+  // Handle Game Logic Transitions
   useEffect(() => {
     if (gameState === 'waiting') {
-      const timer = setInterval(() => {
+      // Clear previous game interval if any
+      if (gameIntervalRef.current) {
+        clearInterval(gameIntervalRef.current);
+        gameIntervalRef.current = null;
+      }
+
+      setCountdown(5);
+      countdownIntervalRef.current = setInterval(() => {
         setCountdown(prev => {
           if (prev <= 1) {
-            clearInterval(timer);
+            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
             startFlying();
-            return 5;
+            return 0;
           }
           return prev - 1;
         });
       }, 1000);
-      return () => clearInterval(timer);
+
+      return () => {
+        if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      };
     }
   }, [gameState]);
 
   const startFlying = () => {
+    // Reset Round State
     multiplierRef.current = 1.00;
     setMultiplier(1.00);
     setGameState('flying');
@@ -71,7 +91,8 @@ export default function RocketPage() {
     }));
     setActiveBets(newBets);
 
-    intervalRef.current = setInterval(() => {
+    // Start multiplier increase
+    gameIntervalRef.current = setInterval(() => {
       const increment = 0.01 + (multiplierRef.current * 0.005);
       multiplierRef.current += increment;
       const currentMult = Number(multiplierRef.current.toFixed(2));
@@ -85,8 +106,8 @@ export default function RocketPage() {
         return p;
       }));
 
-      // Random crash logic
-      const crashChance = 0.005 + (multiplierRef.current * 0.001);
+      // Random crash logic - adjusted to be slightly more forgiving at start
+      const crashChance = 0.003 + (multiplierRef.current * 0.001);
       if (Math.random() < crashChance) {
         crashGame();
       }
@@ -94,20 +115,27 @@ export default function RocketPage() {
   };
 
   const crashGame = () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    setGameState('crashed');
-    setHistory(prev => [Number(multiplierRef.current.toFixed(2)), ...prev].slice(0, 10));
+    if (gameIntervalRef.current) {
+      clearInterval(gameIntervalRef.current);
+      gameIntervalRef.current = null;
+    }
     
+    setGameState('crashed');
+    const finalMult = Number(multiplierRef.current.toFixed(2));
+    setHistory(prev => [finalMult, ...prev].slice(0, 10));
+    
+    // Hold crashed state for 3 seconds before resetting
     setTimeout(() => {
+      // Check if we are still on the page before transitioning
       setGameState('waiting');
-      setCountdown(5);
+      setActiveBets([]); // Clear players for next round
     }, 3000);
   };
 
   const handlePlaceBet = () => {
     if (gameState !== 'waiting' || balance < betAmount) return;
     removeRobux(betAmount);
-    setHasCashedOut(false);
+    // Note: In a real app, we'd add the user to activeBets here
   };
 
   const handleUserCashOut = () => {
@@ -158,7 +186,11 @@ export default function RocketPage() {
               <Button 
                 onClick={handleUserCashOut}
                 disabled={hasCashedOut}
-                className={`w-full h-14 text-lg font-black rounded-2xl ${hasCashedOut ? 'bg-white/10 text-muted-foreground' : 'bg-success text-background hover:bg-success/90'}`}
+                className={`w-full h-14 text-lg font-black rounded-2xl transition-all ${
+                  hasCashedOut 
+                    ? 'bg-white/10 text-muted-foreground' 
+                    : 'bg-success text-background hover:bg-success/90 hover:scale-[1.02]'
+                }`}
               >
                 {hasCashedOut ? 'CASHED OUT' : `CASH OUT (R$ ${Math.floor(betAmount * multiplier)})`}
               </Button>
@@ -174,23 +206,35 @@ export default function RocketPage() {
               <Users className="w-4 h-4" /> Current Players
             </h3>
             <div className="space-y-3 max-h-80 overflow-y-auto no-scrollbar">
-              {activeBets.map((player, i) => (
-                <div key={i} className="flex justify-between items-center text-sm p-2 rounded-lg bg-white/5">
-                  <span className="text-muted-foreground font-medium">{player.user}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-white/60">R$ {player.bet}</span>
-                    {player.cashedOut && (
-                      <motion.span 
-                        initial={{ scale: 0.5, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="text-primary font-black text-sm drop-shadow-[0_0_8px_rgba(200,153,255,0.8)]"
-                      >
-                        {player.cashedOutAt?.toFixed(2)}x
-                      </motion.span>
-                    )}
-                  </div>
+              <AnimatePresence mode="popLayout">
+                {activeBets.map((player, i) => (
+                  <motion.div 
+                    key={`${player.user}-${i}`}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex justify-between items-center text-sm p-2 rounded-lg bg-white/5"
+                  >
+                    <span className="text-muted-foreground font-medium">{player.user}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-white/60">R$ {player.bet}</span>
+                      {player.cashedOut && (
+                        <motion.span 
+                          initial={{ scale: 0.5, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          className="text-primary font-black text-sm drop-shadow-[0_0_8px_rgba(200,153,255,0.8)] px-2 py-0.5 rounded-md bg-primary/10"
+                        >
+                          {player.cashedOutAt?.toFixed(2)}x
+                        </motion.span>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              {activeBets.length === 0 && gameState === 'waiting' && (
+                <div className="text-center py-4 text-xs text-muted-foreground italic">
+                  Waiting for players to join...
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -205,16 +249,23 @@ export default function RocketPage() {
             ))}
           </div>
 
-          <div className="glass-purple h-[500px] rounded-[40px] relative overflow-hidden flex items-center justify-center">
+          <div className="glass-purple h-[500px] rounded-[40px] relative overflow-hidden flex items-center justify-center border-2 border-primary/20">
             {gameState === 'waiting' && (
               <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-background/40 backdrop-blur-sm">
-                <div className="text-muted-foreground font-bold mb-2 uppercase tracking-widest">Next Round in</div>
-                <div className="text-7xl font-headline font-black text-primary">{countdown}s</div>
+                <div className="text-muted-foreground font-bold mb-2 uppercase tracking-widest text-sm">Next Round in</div>
+                <motion.div 
+                  key={countdown}
+                  initial={{ scale: 1.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="text-7xl font-headline font-black text-primary drop-shadow-[0_0_20px_rgba(200,153,255,0.5)]"
+                >
+                  {countdown}s
+                </motion.div>
               </div>
             )}
 
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className={`text-[120px] font-headline font-black tracking-tighter transition-colors duration-300 ${gameState === 'crashed' ? 'text-red-500' : 'text-primary'}`}>
+              <span className={`text-[120px] font-headline font-black tracking-tighter transition-colors duration-300 ${gameState === 'crashed' ? 'text-red-500' : 'text-primary'} drop-shadow-2xl`}>
                 {multiplier.toFixed(2)}x
               </span>
             </div>
@@ -222,7 +273,7 @@ export default function RocketPage() {
             {/* Simulated Graph Line */}
             <svg className="absolute bottom-0 left-0 w-full h-full pointer-events-none">
               <motion.path
-                d={`M 0 500 Q ${gameState !== 'waiting' ? 400 : 0} ${gameState !== 'waiting' ? 500 - (multiplier * 40) : 500} 1200 ${gameState !== 'waiting' ? 500 - (multiplier * 80) : 500}`}
+                d={`M 0 500 Q ${gameState !== 'waiting' ? 400 : 0} ${gameState !== 'waiting' ? 500 - (multiplier * 30) : 500} 1200 ${gameState !== 'waiting' ? 500 - (multiplier * 60) : 500}`}
                 fill="none"
                 stroke="url(#gradient)"
                 strokeWidth="8"
@@ -246,10 +297,14 @@ export default function RocketPage() {
                   exit={{ opacity: 0, scale: 1.5 }}
                   className="absolute inset-0 z-20 backdrop-blur-md bg-background/60 flex flex-col items-center justify-center"
                 >
-                  <div className="w-24 h-24 bg-red-500/20 rounded-full flex items-center justify-center mb-6 border border-red-500/30">
+                  <motion.div 
+                    animate={{ rotate: [0, 10, -10, 0] }}
+                    transition={{ repeat: Infinity, duration: 0.2 }}
+                    className="w-24 h-24 bg-red-500/20 rounded-full flex items-center justify-center mb-6 border-2 border-red-500/50"
+                  >
                     <Zap className="w-12 h-12 text-red-500 fill-red-500" />
-                  </div>
-                  <h3 className="text-7xl font-headline font-black text-red-500 mb-2">CRASHED!</h3>
+                  </motion.div>
+                  <h3 className="text-7xl font-headline font-black text-red-500 mb-2 drop-shadow-[0_0_30px_rgba(255,0,0,0.5)]">CRASHED!</h3>
                   <p className="text-2xl text-muted-foreground">Exploded at <span className="text-white font-bold">{multiplier.toFixed(2)}x</span></p>
                 </motion.div>
               )}
