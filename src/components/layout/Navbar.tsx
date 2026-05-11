@@ -33,14 +33,22 @@ export const Navbar = () => {
     <>
       <nav className="sticky top-0 z-50 px-3 sm:px-6 py-3 flex items-center justify-between backdrop-blur-md border-b border-white/5 bg-background/70 overflow-hidden">
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-          <Link href="/" className="flex items-center gap-1.5 sm:gap-2 group shrink-0">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary/20 rounded-lg sm:rounded-xl flex items-center justify-center border border-primary/30 group-hover:scale-105 transition-transform shrink-0">
-              <span className="text-sm sm:text-xl">⚒️</span>
+          <Link href="/" className="flex items-center gap-2 sm:gap-3 group shrink-0">
+            {/* New Stylized 'K' Logo */}
+            <div className="w-8 h-8 sm:w-11 sm:h-11 bg-primary/10 rounded-lg sm:rounded-2xl flex items-center justify-center border-2 border-primary/40 group-hover:scale-110 group-hover:border-primary transition-all duration-300 shrink-0 relative overflow-hidden shadow-[0_0_20px_rgba(200,153,255,0.2)]">
+              {/* Shine Effect */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+              
+              <span className="relative z-10 font-headline font-black text-primary text-xl sm:text-2xl drop-shadow-[0_0_12px_rgba(200,153,255,1)] select-none">
+                K
+              </span>
             </div>
-            <span className="font-headline text-[13px] sm:text-xl md:text-2xl font-bold tracking-tighter headline-gradient whitespace-nowrap block">
+            
+            <span className="font-headline text-[14px] sm:text-xl md:text-2xl font-black tracking-tighter headline-gradient whitespace-nowrap block">
               KoroneBet.xyz
             </span>
           </Link>
+          
           <Button
             variant="ghost"
             size="icon"
