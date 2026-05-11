@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 interface RobuxContextType {
   balance: number;
@@ -9,6 +9,8 @@ interface RobuxContextType {
   removeRobux: (amount: number) => void;
   isAdminOpen: boolean;
   toggleAdmin: () => void;
+  isVerified: boolean;
+  setIsVerified: (val: boolean) => void;
   // Rocket Controls
   nextCrashMultiplier: number | null;
   setNextCrashMultiplier: (val: number | null) => void;
@@ -21,6 +23,7 @@ const RobuxContext = createContext<RobuxContextType | undefined>(undefined);
 export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [balance, setBalance] = useState(1000);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isVerified, setIsVerified] = useState(true);
   const [nextCrashMultiplier, setNextCrashMultiplier] = useState<number | null>(null);
   const [forceCrashTrigger, setForceCrashTrigger] = useState(0);
 
@@ -36,6 +39,8 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       removeRobux, 
       isAdminOpen, 
       toggleAdmin,
+      isVerified,
+      setIsVerified,
       nextCrashMultiplier,
       setNextCrashMultiplier,
       forceCrashTrigger,

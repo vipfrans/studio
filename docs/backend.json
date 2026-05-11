@@ -1,0 +1,53 @@
+
+{
+  "entities": {
+    "Announcement": {
+      "title": "Announcement",
+      "description": "A global broadcast message displayed to all users.",
+      "type": "object",
+      "properties": {
+        "senderName": {
+          "type": "string",
+          "description": "The name of the person sending the announcement."
+        },
+        "text": {
+          "type": "string",
+          "description": "The message content of the announcement."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "Optional image URL to display with the announcement."
+        },
+        "isVerified": {
+          "type": "boolean",
+          "description": "Whether the sender should display a verification badge."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Whether this announcement is currently active."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the announcement was created."
+        }
+      },
+      "required": [
+        "senderName",
+        "text",
+        "active"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "google"
+    ]
+  },
+  "firestore": {
+    "/announcements/{announcementId}": {
+      "schema": "Announcement",
+      "description": "Collection of global announcements."
+    }
+  }
+}
