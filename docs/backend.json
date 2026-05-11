@@ -7,12 +7,24 @@
       "type": "object",
       "properties": {
         "username": { "type": "string" },
+        "email": { "type": "string" },
         "balance": { "type": "number" },
         "role": { "type": "string", "enum": ["ADMIN", "VIP", "MEMBER"] },
         "isVerified": { "type": "boolean" },
         "uid": { "type": "string" }
       },
-      "required": ["username", "balance", "role"]
+      "required": ["username", "email", "balance", "role"]
+    },
+    "VerificationCode": {
+      "title": "Verification Code",
+      "description": "كود التحقق المؤقت لتفعيل الحساب.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "code": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "code", "createdAt"]
     },
     "Announcement": {
       "title": "Announcement",
@@ -56,6 +68,10 @@
     "/users/{userId}": {
       "schema": "UserProfile",
       "description": "ملفات المستخدمين."
+    },
+    "/verification_codes/{codeId}": {
+      "schema": "VerificationCode",
+      "description": "أكواد التحقق المؤقتة."
     },
     "/announcements/{announcementId}": {
       "schema": "Announcement",
