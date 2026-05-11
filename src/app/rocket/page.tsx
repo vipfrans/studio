@@ -27,7 +27,7 @@ interface PlayerBet {
 }
 
 export default function RocketPage() {
-  const { balance, removeRobux, addRobux } = useRobux();
+  const { balance, removeRobux, addRobux, nextCrashMultiplier, setNextCrashMultiplier, forceCrashTrigger } = useRobux();
   const [betAmount, setBetAmount] = useState(100);
   const [multiplier, setMultiplier] = useState(1.00);
   const [gameState, setGameState] = useState<'waiting' | 'flying' | 'crashed'>('waiting');
@@ -36,12 +36,12 @@ export default function RocketPage() {
   const [history, setHistory] = useState<number[]>([1.45, 12.4, 2.1, 1.05, 5.5]);
   const [activeBets, setActiveBets] = useState<PlayerBet[]>([]);
   const [countdown, setCountdown] = useState(5);
-  const [targetPlayerCount, setTargetPlayerCount] = useState(15);
 
   const multiplierRef = useRef(1.00);
   const gameIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const playerJoinIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const activeCrashTargetRef = useRef<number | null>(null);
 
   const stopAllIntervals = () => {
     if (gameIntervalRef.current) clearInterval(gameIntervalRef.current);
@@ -51,6 +51,13 @@ export default function RocketPage() {
     countdownIntervalRef.current = null;
     playerJoinIntervalRef.current = null;
   };
+
+  // Listen for Admin Force Crash
+  useEffect(() => {
+    if (gameState === 'flying' && forceCrashTrigger > 0) {
+      crashGame();
+    }
+  }, [forceCrashTrigger]);
 
   useEffect(() => {
     initWaitingPhase();
@@ -67,8 +74,10 @@ export default function RocketPage() {
     setHasCashedOut(false);
     setIsUserInRound(false);
     
-    const newTarget = Math.floor(Math.random() * 35) + 5; // بين 5 و 40 لاعب
-    setTargetPlayerCount(newTarget);
+    // Set admin target for the upcoming round
+    activeCrashTargetRef.current = nextCrashMultiplier;
+    
+    const targetCount = Math.floor(Math.random() * 35) + 5;
 
     countdownIntervalRef.current = setInterval(() => {
       setCountdown(prev => {
@@ -82,18 +91,15 @@ export default function RocketPage() {
 
     playerJoinIntervalRef.current = setInterval(() => {
       setActiveBets(prev => {
-        if (prev.length >= newTarget) return prev;
-        
+        if (prev.length >= targetCount) return prev;
         const availableNames = REALISTIC_NAMES.filter(name => !prev.some(p => p.user === name));
         if (availableNames.length === 0) return prev;
         
         const randomName = availableNames[Math.floor(Math.random() * availableNames.length)];
-
-        // مبالغ معقولة لا تتعدى 10,000
-        const isWhale = Math.random() < 0.1; // 10% فرصة لمبلغ كبير
+        const isWhale = Math.random() < 0.1;
         const bet = isWhale 
-          ? Math.floor(Math.random() * 7000) + 3000 // بين 3000 و 10,000
-          : Math.floor(Math.random() * 800) + 10; // بين 10 و 800
+          ? Math.floor(Math.random() * 7000) + 3000 
+          : Math.floor(Math.random() * 800) + 10;
 
         const newPlayer: PlayerBet = {
           user: randomName,
@@ -109,6 +115,8 @@ export default function RocketPage() {
   const startFlying = () => {
     stopAllIntervals();
     setGameState('flying');
+    // Clear the pending admin target once round starts
+    setNextCrashMultiplier(null);
 
     gameIntervalRef.current = setInterval(() => {
       const increment = 0.005 + (multiplierRef.current * 0.007);
@@ -116,6 +124,7 @@ export default function RocketPage() {
       const currentMult = Number(multiplierRef.current.toFixed(2));
       setMultiplier(currentMult);
 
+      // Handle NPC Cashouts
       setActiveBets(prev => prev.map(p => {
         if (p.user !== 'Admin' && !p.cashedOut && currentMult >= p.targetMultiplier) {
           return { ...p, cashedOut: true, cashedOutAt: currentMult };
@@ -123,8 +132,15 @@ export default function RocketPage() {
         return p;
       }));
 
+      // ADMIN CONTROL: Check if we reached the admin-set target
+      if (activeCrashTargetRef.current && currentMult >= activeCrashTargetRef.current) {
+        crashGame();
+        return;
+      }
+
+      // Natural crash chance
       const crashChance = 0.002 + (multiplierRef.current * 0.002);
-      if (Math.random() < crashChance) {
+      if (Math.random() < crashChance && !activeCrashTargetRef.current) {
         crashGame();
       }
     }, 70);
@@ -133,6 +149,7 @@ export default function RocketPage() {
   const crashGame = () => {
     stopAllIntervals();
     setGameState('crashed');
+    activeCrashTargetRef.current = null;
     const finalMult = Number(multiplierRef.current.toFixed(2));
     setHistory(prev => [finalMult, ...prev].slice(0, 10));
     
@@ -341,4 +358,3 @@ export default function RocketPage() {
     </div>
   );
 }
-

@@ -9,6 +9,11 @@ interface RobuxContextType {
   removeRobux: (amount: number) => void;
   isAdminOpen: boolean;
   toggleAdmin: () => void;
+  // Rocket Controls
+  nextCrashMultiplier: number | null;
+  setNextCrashMultiplier: (val: number | null) => void;
+  forceCrashTrigger: number; // Timestamp to trigger immediate crash
+  triggerImmediateCrash: () => void;
 }
 
 const RobuxContext = createContext<RobuxContextType | undefined>(undefined);
@@ -16,13 +21,26 @@ const RobuxContext = createContext<RobuxContextType | undefined>(undefined);
 export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [balance, setBalance] = useState(1000);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [nextCrashMultiplier, setNextCrashMultiplier] = useState<number | null>(null);
+  const [forceCrashTrigger, setForceCrashTrigger] = useState(0);
 
   const addRobux = (amount: number) => setBalance(prev => prev + amount);
   const removeRobux = (amount: number) => setBalance(prev => Math.max(0, prev - amount));
   const toggleAdmin = () => setIsAdminOpen(prev => !prev);
+  const triggerImmediateCrash = () => setForceCrashTrigger(Date.now());
 
   return (
-    <RobuxContext.Provider value={{ balance, addRobux, removeRobux, isAdminOpen, toggleAdmin }}>
+    <RobuxContext.Provider value={{ 
+      balance, 
+      addRobux, 
+      removeRobux, 
+      isAdminOpen, 
+      toggleAdmin,
+      nextCrashMultiplier,
+      setNextCrashMultiplier,
+      forceCrashTrigger,
+      triggerImmediateCrash
+    }}>
       {children}
     </RobuxContext.Provider>
   );
