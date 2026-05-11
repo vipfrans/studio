@@ -23,7 +23,7 @@ export default function MinesPage() {
 
   const startGame = () => {
     if (balance < betAmount) return;
-    removeRobux(betAmount);
+    removeRobux(betAmount, 'Mines');
     
     // Generate mines
     const newMines: number[] = [];
@@ -61,7 +61,7 @@ export default function MinesPage() {
     
     const multiplier = 1 + (count * 0.2 * (bombCount / 2));
     const winAmount = Math.floor(betAmount * multiplier);
-    addRobux(winAmount);
+    addRobux(winAmount, 'Mines');
     setHasWon(true);
     setIsPlaying(false);
     setIsGameOver(true);

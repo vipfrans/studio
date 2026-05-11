@@ -18,7 +18,7 @@ export default function CoinflipPage() {
 
   const startFlip = () => {
     if (balance < betAmount) return;
-    removeRobux(betAmount);
+    removeRobux(betAmount, 'Coinflip');
     
     setIsFlipping(true);
     setWinner(null);
@@ -29,7 +29,7 @@ export default function CoinflipPage() {
       setIsFlipping(false);
       
       if (result === side) {
-        addRobux(betAmount * 1.95);
+        addRobux(betAmount * 1.95, 'Coinflip');
       }
     }, 2000);
   };

@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useAuth, useFirestore, useDoc } from '@/firebase';
-import { doc, setDoc, updateDoc, increment, collection, addDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
+import { doc, updateDoc, increment, collection, addDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
 
 interface RobuxContextType {
   balance: number;
@@ -54,16 +54,25 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     if (profile) {
       setIsVerified(profile.isVerified || false);
+      
+      // Auto-enforce Founder rank for 'dew'
+      if (profile.username?.toLowerCase() === 'dew' && profile.role !== 'OWNER' && userDocRef) {
+        updateDoc(userDocRef, { role: 'OWNER' });
+      }
     }
-  }, [profile]);
+  }, [profile, userDocRef]);
 
-  const addRobux = async (amount: number, game: string) => {
+  const addRobux = async (amount: number, game: string = 'Game') => {
     if (!userDocRef || !db) return;
+    
+    // Ensure game is never undefined for Firestore
+    const safeGame = game || 'Unknown Game';
+
     await updateDoc(userDocRef, { 
       balance: increment(amount),
       "stats.totalWins": increment(amount),
       gamesHistory: arrayUnion({
-        game,
+        game: safeGame,
         amount,
         type: 'WIN',
         createdAt: new Date().toISOString()
@@ -74,7 +83,7 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       addDoc(collection(db, 'real_winnings'), {
         username: profile?.username || 'Player',
         amount: amount,
-        game: game,
+        game: safeGame,
         avatarUrl: profile?.avatarUrl || '',
         createdAt: serverTimestamp()
       });
@@ -83,13 +92,15 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const removeRobux = async (amount: number, game?: string) => {
     if (!userDocRef) return;
+    const safeGame = game || 'Unknown Game';
+    
     await updateDoc(userDocRef, { 
       balance: increment(-amount),
       "stats.totalWagered": increment(amount),
       "stats.totalGames": increment(1),
       ...(game ? {
         gamesHistory: arrayUnion({
-          game,
+          game: safeGame,
           amount,
           type: 'LOSS',
           createdAt: new Date().toISOString()
