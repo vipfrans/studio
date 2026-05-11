@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Megaphone, ShieldCheck, X } from 'lucide-react';
 import { useDoc, useFirestore } from '@/firebase';
@@ -11,35 +11,56 @@ const ANNOUNCEMENT_DURATION = 10000; // 10 seconds
 
 export const GlobalAnnouncement = () => {
   const db = useFirestore();
-  const annDoc = useDoc(db ? doc(db, 'announcements', 'active') : null);
-  const announcement = annDoc.data as any;
+  
+  // تثبيت مرجع المستند لمنع إعادة التشغيل المستمر للخطاف (Hook)
+  const activeDocRef = useMemo(() => {
+    if (!db) return null;
+    return doc(db, 'announcements', 'active');
+  }, [db]);
+
+  const { data: announcement } = useDoc(activeDocRef) as any;
 
   const [activeAnn, setActiveAnn] = useState<any>(null);
   const [show, setShow] = useState(false);
+  const lastProcessedIdRef = useRef<string | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (announcement && announcement.active) {
-      // Create a stable unique ID
-      const annId = announcement.createdAt?.seconds?.toString() || JSON.stringify(announcement);
+    if (!announcement) return;
+
+    // توليد معرف فريد ومستقر للرسالة
+    const annId = announcement.createdAt?.seconds?.toString() || 
+                  (announcement.text ? announcement.text.substring(0, 20) : 'none');
+
+    // إذا كانت الرسالة نشطة ولها معرف جديد لم نعالجه بعد
+    if (announcement.active && annId !== lastProcessedIdRef.current) {
+      // تنظيف أي مؤقت سابق
+      if (timerRef.current) clearTimeout(timerRef.current);
       
-      // If it's a brand new announcement that we haven't shown or is different from the last one
-      if (!activeAnn || activeAnn.id !== annId) {
-        setActiveAnn({ ...announcement, id: annId });
-        setShow(true);
+      lastProcessedIdRef.current = annId;
+      setActiveAnn({ ...announcement, id: annId });
+      setShow(true);
 
-        const timer = setTimeout(() => {
-          setShow(false);
-        }, ANNOUNCEMENT_DURATION);
-
-        return () => clearTimeout(timer);
-      }
-    } else if (announcement && !announcement.active) {
+      // ضبط مؤقت الاختفاء
+      timerRef.current = setTimeout(() => {
+        setShow(false);
+      }, ANNOUNCEMENT_DURATION);
+    } 
+    
+    // إذا تم إيقاف الإعلان من لوحة التحكم يختفي فوراً
+    if (announcement && announcement.active === false) {
       setShow(false);
+      if (timerRef.current) clearTimeout(timerRef.current);
     }
-  }, [announcement, activeAnn]);
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [announcement]);
 
   const handleManualDismiss = () => {
     setShow(false);
+    if (timerRef.current) clearTimeout(timerRef.current);
   };
 
   if (!db) return null;
@@ -56,10 +77,10 @@ export const GlobalAnnouncement = () => {
             x: '-50%', 
             opacity: 0,
             scale: 0.8,
-            filter: 'blur(12px)',
-            transition: { duration: 0.6, ease: "easeIn" }
+            filter: 'blur(10px)',
+            transition: { duration: 0.4, ease: "easeIn" }
           }}
-          transition={{ type: "spring", stiffness: 260, damping: 20 }}
+          transition={{ type: "spring", stiffness: 260, damping: 25 }}
           className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] w-[95%] sm:w-[90%] max-w-2xl px-2 pointer-events-auto"
         >
           <div className="glass-purple p-4 rounded-2xl border-2 border-accent/40 shadow-[0_0_50px_rgba(255,153,230,0.3)] relative overflow-hidden">
