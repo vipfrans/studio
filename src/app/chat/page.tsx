@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Send, Users, Crown, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Send, Users, Crown, ShieldCheck, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,7 +40,6 @@ export default function ChatPage() {
   const [chatOnline, setChatOnline] = useState(15);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Load initial messages
   useEffect(() => {
     const initial = Array.from({ length: 6 }).map((_, i) => ({
       id: Math.random().toString(36),
@@ -51,7 +50,6 @@ export default function ChatPage() {
     setMessages(initial);
   }, []);
 
-  // Simulate incoming messages
   useEffect(() => {
     const interval = setInterval(() => {
       const msg: ChatMessage = {
@@ -65,7 +63,6 @@ export default function ChatPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fluctuating online count
   useEffect(() => {
     const interval = setInterval(() => {
       setChatOnline(prev => {
@@ -76,7 +73,6 @@ export default function ChatPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Scroll to bottom
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -97,36 +93,36 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12 pb-32 h-[85vh] flex flex-col">
-      <div className="flex items-center justify-between mb-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-12 h-[calc(100vh-80px)] sm:h-[85vh] flex flex-col pb-24 sm:pb-32">
+      <div className="flex items-center justify-between mb-4 sm:mb-8">
         <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
-          <div className="p-2 bg-white/5 rounded-xl border border-white/10 group-hover:border-primary">
-            <ArrowLeft className="w-5 h-5" />
+          <div className="p-2 bg-white/5 rounded-xl border border-white/10">
+            <ArrowLeft className="w-4 h-4 sm:w-5 h-5" />
           </div>
-          <span className="font-bold">Back to Casino</span>
+          <span className="font-bold text-sm sm:text-base">Back to Casino</span>
         </Link>
         
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full border border-primary/20">
-            <Users className="w-4 h-4 text-primary" />
-            <span className="text-xs font-black text-primary uppercase">{chatOnline} Chatting Now</span>
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary/10 rounded-full border border-primary/20">
+            <Users className="w-3.5 h-3.5 text-primary" />
+            <span className="text-[10px] sm:text-xs font-black text-primary uppercase">{chatOnline} Chatting</span>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 glass-purple rounded-[40px] border-2 border-primary/20 overflow-hidden flex flex-col relative">
-        <div className="p-6 border-b border-primary/10 bg-primary/5 flex justify-between items-center">
-          <h2 className="font-headline text-xl font-black headline-gradient flex items-center gap-2">
-            <MessageSquare className="w-5 h-5" /> GLOBAL COMMUNITY
+      <div className="flex-1 glass-purple rounded-[24px] sm:rounded-[40px] border-2 border-primary/20 overflow-hidden flex flex-col relative">
+        <div className="p-4 sm:p-6 border-b border-primary/10 bg-primary/5 flex justify-between items-center">
+          <h2 className="font-headline text-lg sm:text-xl font-black headline-gradient flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 sm:w-5 h-5" /> GLOBAL CHAT
           </h2>
-          <div className="flex items-center gap-1.5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-            <ShieldCheck className="w-3.5 h-3.5" /> Moderated Chat
+          <div className="hidden sm:flex items-center gap-1.5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+            <ShieldCheck className="w-3.5 h-3.5" /> Moderated
           </div>
         </div>
 
         <div 
           ref={scrollRef}
-          className="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar"
+          className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 sm:space-y-4 no-scrollbar"
         >
           <AnimatePresence mode="popLayout">
             {messages.map((msg) => (
@@ -139,15 +135,15 @@ export default function ChatPage() {
                 <div className="flex items-center gap-2 mb-1">
                   {msg.isAdmin ? (
                     <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary rounded-md shadow-[0_0_15px_rgba(200,153,255,0.6)] border border-white/20">
-                      <Crown className="w-3 h-3 text-primary-foreground fill-current" />
-                      <span className="text-[10px] font-black text-primary-foreground uppercase">Admin</span>
+                      <Crown className="w-2.5 h-2.5 text-primary-foreground fill-current" />
+                      <span className="text-[9px] font-black text-primary-foreground uppercase">Admin</span>
                     </div>
                   ) : (
-                    <span className="text-xs font-bold text-muted-foreground">{msg.user}</span>
+                    <span className="text-[10px] sm:text-xs font-bold text-muted-foreground">{msg.user}</span>
                   )}
-                  <span className="text-[10px] text-white/20">{msg.time}</span>
+                  <span className="text-[9px] text-white/20">{msg.time}</span>
                 </div>
-                <div className={`px-4 py-2.5 rounded-2xl max-w-[80%] break-words ${
+                <div className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl max-w-[85%] sm:max-w-[80%] break-words text-sm sm:text-base ${
                   msg.isAdmin 
                     ? 'bg-primary text-primary-foreground font-medium rounded-tr-none' 
                     : 'bg-white/5 border border-white/10 text-white rounded-tl-none'
@@ -159,18 +155,18 @@ export default function ChatPage() {
           </AnimatePresence>
         </div>
 
-        <div className="p-6 bg-background/40 backdrop-blur-md border-t border-primary/10">
-          <div className="relative flex items-center gap-3">
+        <div className="p-4 sm:p-6 bg-background/40 backdrop-blur-md border-t border-primary/10">
+          <div className="relative flex items-center gap-2 sm:gap-3">
             <Input 
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Type your message here..."
-              className="bg-white/5 border-white/10 h-14 rounded-2xl pl-6 pr-16 focus-visible:ring-primary focus-visible:border-primary/50"
+              placeholder="Type message..."
+              className="bg-white/5 border-white/10 h-12 sm:h-14 rounded-xl sm:rounded-2xl pl-4 sm:pl-6 pr-14 focus-visible:ring-primary focus-visible:border-primary/50 text-sm sm:text-base"
             />
             <Button 
               onClick={handleSend}
-              className="absolute right-2 h-10 w-10 bg-primary hover:bg-primary/90 rounded-xl"
+              className="absolute right-1.5 sm:right-2 h-9 w-9 sm:h-10 sm:w-10 bg-primary hover:bg-primary/90 rounded-lg sm:rounded-xl"
               size="icon"
             >
               <Send className="w-4 h-4 text-primary-foreground" />
@@ -181,5 +177,3 @@ export default function ChatPage() {
     </div>
   );
 }
-
-import { MessageSquare } from 'lucide-react';

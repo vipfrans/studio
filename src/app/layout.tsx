@@ -30,7 +30,7 @@ export default function RootLayout({
           <RobuxProvider>
             <SnowParticles />
             <Navbar />
-            <main className="flex-1 relative z-10">
+            <main className="flex-1 relative z-10 w-full max-w-7xl mx-auto">
               {children}
             </main>
             <GlobalAnnouncement />
