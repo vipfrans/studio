@@ -67,11 +67,9 @@ export default function RocketPage() {
     setHasCashedOut(false);
     setIsUserInRound(false);
     
-    // Random target player count between 5 and 40
-    const newTarget = Math.floor(Math.random() * 35) + 5;
+    const newTarget = Math.floor(Math.random() * 35) + 5; // بين 5 و 40 لاعب
     setTargetPlayerCount(newTarget);
 
-    // Countdown logic
     countdownIntervalRef.current = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
@@ -82,7 +80,6 @@ export default function RocketPage() {
       });
     }, 1000);
 
-    // Simulated players join one by one
     playerJoinIntervalRef.current = setInterval(() => {
       setActiveBets(prev => {
         if (prev.length >= newTarget) return prev;
@@ -92,21 +89,21 @@ export default function RocketPage() {
         
         const randomName = availableNames[Math.floor(Math.random() * availableNames.length)];
 
-        // Random bet: 5% chance for a big "whale" bet, others smaller
-        const isWhale = Math.random() < 0.05;
+        // مبالغ معقولة لا تتعدى 10,000
+        const isWhale = Math.random() < 0.1; // 10% فرصة لمبلغ كبير
         const bet = isWhale 
-          ? Math.floor(Math.random() * 20000) + 5000 
-          : Math.floor(Math.random() * 800) + 10;
+          ? Math.floor(Math.random() * 7000) + 3000 // بين 3000 و 10,000
+          : Math.floor(Math.random() * 800) + 10; // بين 10 و 800
 
         const newPlayer: PlayerBet = {
           user: randomName,
           bet: bet,
-          targetMultiplier: 1.1 + (Math.random() * 8),
+          targetMultiplier: 1.1 + (Math.random() * 5),
           cashedOut: false
         };
         return [...prev, newPlayer];
       });
-    }, 200);
+    }, 150);
   };
 
   const startFlying = () => {
@@ -114,12 +111,11 @@ export default function RocketPage() {
     setGameState('flying');
 
     gameIntervalRef.current = setInterval(() => {
-      const increment = 0.004 + (multiplierRef.current * 0.006);
+      const increment = 0.005 + (multiplierRef.current * 0.007);
       multiplierRef.current += increment;
       const currentMult = Number(multiplierRef.current.toFixed(2));
       setMultiplier(currentMult);
 
-      // Check simulated players cash out
       setActiveBets(prev => prev.map(p => {
         if (p.user !== 'Admin' && !p.cashedOut && currentMult >= p.targetMultiplier) {
           return { ...p, cashedOut: true, cashedOutAt: currentMult };
@@ -127,12 +123,11 @@ export default function RocketPage() {
         return p;
       }));
 
-      // Crash chance increases with multiplier
-      const crashChance = 0.002 + (multiplierRef.current * 0.0015);
+      const crashChance = 0.002 + (multiplierRef.current * 0.002);
       if (Math.random() < crashChance) {
         crashGame();
       }
-    }, 60);
+    }, 70);
   };
 
   const crashGame = () => {
@@ -152,7 +147,7 @@ export default function RocketPage() {
     setIsUserInRound(true);
     
     const userBet: PlayerBet = {
-      user: 'Admin', // User name is now Admin
+      user: 'Admin',
       bet: betAmount,
       targetMultiplier: 999,
       cashedOut: false
@@ -235,7 +230,7 @@ export default function RocketPage() {
             <h3 className="text-xs font-bold text-muted-foreground uppercase mb-4 flex items-center gap-2">
               <Users className="w-4 h-4" /> Current Players ({activeBets.length})
             </h3>
-            <div className="space-y-3 max-h-80 overflow-y-auto no-scrollbar">
+            <div className="space-y-3 max-h-[400px] overflow-y-auto no-scrollbar">
               <AnimatePresence mode="popLayout">
                 {[...activeBets].sort((a,b) => (a.user === 'Admin' ? -1 : 1)).map((player, i) => (
                   <motion.div 
@@ -302,7 +297,7 @@ export default function RocketPage() {
 
             <svg className="absolute bottom-0 left-0 w-full h-full pointer-events-none">
               <motion.path
-                d={`M 0 500 Q ${gameState === 'flying' ? 400 : 0} ${gameState === 'flying' ? 500 - (multiplier * 25) : 500} 1200 ${gameState === 'flying' ? 500 - (multiplier * 50) : 500}`}
+                d={`M 0 500 Q ${gameState === 'flying' ? 400 : 0} ${gameState === 'flying' ? 500 - (multiplier * 20) : 500} 1200 ${gameState === 'flying' ? 500 - (multiplier * 40) : 500}`}
                 fill="none"
                 stroke="url(#rocketGradient)"
                 strokeWidth="10"
