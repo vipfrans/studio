@@ -9,7 +9,7 @@ import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-const REALISTIC_NAMES = ['Frosty_Blox', 'Lumine_Dev', 'VoidX_Gamer', 'Ghost_Rider', 'Stellar_YT', 'Valk_Queen'];
+const REALISTIC_NAMES = ['Frosty_Blox', 'Lumine_Dev', 'VoidX_Gamer', 'Ghost_Rider', 'Stellar_YT', 'Valk_Queen', 'Neon_Player', 'Rex_Bet', 'Kone_Pro', 'Silent_Ace', 'Storm_Rider', 'Pixel_Warrior', 'Cyber_Punk', 'Robo_Gamer'];
 
 interface PlayerBet {
   user: string;
@@ -65,12 +65,14 @@ export default function RocketPage() {
       });
     }, 1000);
 
-    // إضافة بوتات وهمية
-    const bots = REALISTIC_NAMES.slice(0, 4).map(name => ({
+    // Randomize bot count between 4 and 14
+    const botCount = Math.floor(Math.random() * (14 - 4 + 1)) + 4;
+    const shuffledNames = [...REALISTIC_NAMES].sort(() => 0.5 - Math.random());
+    const bots = shuffledNames.slice(0, botCount).map(name => ({
       user: name,
-      bet: Math.floor(Math.random() * 500) + 10,
+      bet: Math.floor(Math.random() * 800) + 50,
       avatarUrl: `https://picsum.photos/seed/${name}/40/40`,
-      targetMultiplier: 1.1 + (Math.random() * 3),
+      targetMultiplier: 1.1 + (Math.random() * 4),
       cashedOut: false
     }));
     setActiveBets(bots);
@@ -147,8 +149,8 @@ export default function RocketPage() {
           
           <div className="space-y-4">
             <Input type="number" value={betAmount} onChange={e => setBetAmount(Number(e.target.value))} className="bg-black/20" disabled={isUserInRound} />
-            <Button onClick={gameState === 'waiting' ? handlePlaceBet : handleUserCashOut} disabled={(gameState === 'waiting' && isUserInRound) || (gameState === 'flying' && hasCashedOut)} className="w-full h-14 font-black">
-              {gameState === 'waiting' ? 'PLACE BET' : 'CASH OUT'}
+            <Button onClick={gameState === 'waiting' ? handlePlaceBet : handleUserCashOut} disabled={(gameState === 'waiting' && isUserInRound) || (gameState === 'flying' && hasCashedOut) || gameState === 'crashed'} className="w-full h-14 font-black">
+              {gameState === 'waiting' ? (isUserInRound ? 'WAITING...' : 'PLACE BET') : (hasCashedOut ? 'CASHED OUT' : 'CASH OUT')}
             </Button>
           </div>
 

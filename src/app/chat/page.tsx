@@ -3,12 +3,12 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Send, Crown, CheckCircle, Reply, X, Star, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Send, Crown, CheckCircle, Reply, X, Star, ShieldCheck, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useFirestore, useCollection } from '@/firebase';
-import { collection, addDoc, query, orderBy, limit, serverTimestamp, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, limit, serverTimestamp, where, getDocs, updateDoc, doc, getDoc, increment } from 'firebase/firestore';
 import { useRobux } from '@/context/RobuxContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -30,7 +30,7 @@ interface ChatMessage {
 }
 
 const ROLES: UserRole[] = ['OWNER', 'ADMIN', 'VIP', 'MEMBER', 'USER'];
-const BOT_NAMES = ['Frosty_Blox', 'Lumine_Dev', 'VoidX_Gamer', 'Ghost_Rider', 'Stellar_YT', 'Valk_Queen', 'Rex_Bet', 'Kone_Pro'];
+const BOT_NAMES = ['Frosty_Blox', 'Lumine_Dev', 'VoidX_Gamer', 'Ghost_Rider', 'Stellar_YT', 'Valk_Queen', 'Rex_Bet', 'Kone_Pro', 'Neon_Vibe', 'Pixel_Pulse'];
 const BOT_MESSAGES = [
   "Good luck everyone!",
   "Just hit a 5x on Rocket!",
@@ -41,7 +41,11 @@ const BOT_MESSAGES = [
   "Waiting for the next round...",
   "Big win incoming!",
   "Nice catch!",
-  "Ggwp"
+  "Ggwp",
+  "Has anyone tried the 24 mine challenge?",
+  "Rocket is going crazy right now!",
+  "Saving up for the next drop.",
+  "Don't forget to use ;daily for some extra Robux!"
 ];
 
 export default function ChatPage() {
@@ -78,11 +82,11 @@ export default function ChatPage() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const shouldSend = Math.random() > 0.7;
+      const shouldSend = Math.random() > 0.6; // Increased frequency
       if (shouldSend) {
         const botName = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
         const botText = BOT_MESSAGES[Math.floor(Math.random() * BOT_MESSAGES.length)];
-        const role: UserRole = Math.random() > 0.9 ? 'VIP' : 'MEMBER';
+        const role: UserRole = Math.random() > 0.85 ? 'VIP' : 'MEMBER';
         
         const newSimMsg: ChatMessage = {
           id: 'sim-' + Date.now(),
@@ -94,9 +98,9 @@ export default function ChatPage() {
           createdAt: new Date().toISOString(),
           isSimulated: true
         };
-        setSimulatedMessages(prev => [...prev, newSimMsg].slice(-20));
+        setSimulatedMessages(prev => [...prev, newSimMsg].slice(-25));
       }
-    }, 8000);
+    }, 5000); // Faster interval
     return () => clearInterval(interval);
   }, []);
 
@@ -116,10 +120,46 @@ export default function ChatPage() {
   };
 
   const handleSend = async () => {
-    if (!newMessage.trim() || !userProfile || !db) return;
+    const text = newMessage.trim();
+    if (!text || !userProfile || !db) return;
 
-    if (newMessage.startsWith(';rank') && (userProfile.role === 'OWNER' || userProfile.username?.toLowerCase() === 'dew')) {
-      const parts = newMessage.split(' ');
+    // Handle ;daily command
+    if (text === ';daily') {
+      const userRef = doc(db, 'users', userProfile.uid);
+      const userSnap = await getDoc(userRef);
+      const data = userSnap.data();
+      const lastDaily = data?.lastDailyClaim?.toDate() || 0;
+      const now = new Date();
+      const diff = now.getTime() - new Date(lastDaily).getTime();
+      const oneDay = 24 * 60 * 60 * 1000;
+
+      if (diff >= oneDay) {
+        await updateDoc(userRef, {
+          balance: increment(10),
+          lastDailyClaim: serverTimestamp()
+        });
+        toast({
+          title: "Daily Claimed!",
+          description: "You received 10 Robux. Come back in 24 hours!",
+        });
+        setNewMessage('');
+        return;
+      } else {
+        const remaining = oneDay - diff;
+        const hours = Math.floor(remaining / (60 * 60 * 1000));
+        const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+        toast({
+          variant: "destructive",
+          title: "Daily Not Ready",
+          description: `You can claim again in ${hours}h ${minutes}m.`,
+        });
+        setNewMessage('');
+        return;
+      }
+    }
+
+    if (text.startsWith(';rank') && (userProfile.role === 'OWNER' || userProfile.username?.toLowerCase() === 'dew')) {
+      const parts = text.split(' ');
       if (parts.length >= 3) {
         const targetUser = parts[1];
         const role = parts[2].toUpperCase() as UserRole;
@@ -144,7 +184,7 @@ export default function ChatPage() {
       username: userProfile.username,
       role: (userProfile.username?.toLowerCase() === 'dew') ? 'OWNER' : userProfile.role,
       avatarUrl: userProfile.avatarUrl || '',
-      text: newMessage,
+      text: text,
       createdAt: serverTimestamp(),
       replyTo: replyingTo ? { username: replyingTo.username, text: replyingTo.text } : null
     });
@@ -196,6 +236,10 @@ export default function ChatPage() {
           <ArrowLeft className={`w-5 h-5 ${lang === 'AR' ? 'rotate-180' : ''}`} />
           <span className="font-bold">{lang === 'EN' ? 'Lobby' : 'الرئيسية'}</span>
         </Link>
+        <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full border border-primary/20">
+          <Clock className="w-3 h-3 text-primary" />
+          <span className="text-[10px] font-bold text-primary uppercase">Daily ready? Use ;daily</span>
+        </div>
       </div>
 
       <div className="flex-1 glass-purple rounded-[32px] border-2 border-primary/20 flex flex-col overflow-hidden">

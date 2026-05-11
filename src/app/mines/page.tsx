@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bomb, Diamond, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Bomb, Diamond, ArrowLeft, RefreshCw, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,14 @@ export default function MinesPage() {
   const [hasWon, setHasWon] = useState(false);
 
   const startGame = () => {
-    if (balance < betAmount) return;
+    if (balance < betAmount || isPlaying) return;
+    
+    // Completely reset everything for a new game
+    setMines([]);
+    setRevealed([]);
+    setHasWon(false);
+    setIsGameOver(false);
+    
     removeRobux(betAmount, 'Mines');
     
     // Generate mines
@@ -33,23 +40,22 @@ export default function MinesPage() {
     }
     
     setMines(newMines);
-    setRevealed([]);
     setIsPlaying(true);
-    setIsGameOver(false);
-    setHasWon(false);
   };
 
   const handleTileClick = (index: number) => {
     if (!isPlaying || revealed.includes(index) || isGameOver) return;
 
     if (mines.includes(index)) {
+      // LOSE
       setIsGameOver(true);
-      setRevealed(prev => [...prev, ...mines]);
+      setIsPlaying(false);
+      setRevealed(prev => Array.from(new Set([...prev, ...mines])));
     } else {
+      // SAFE
       const nextRevealed = [...revealed, index];
       setRevealed(nextRevealed);
       
-      // Automatic cash out check or manual win logic
       if (nextRevealed.length === GRID_SIZE - bombCount) {
         cashOut(nextRevealed.length);
       }
@@ -57,14 +63,23 @@ export default function MinesPage() {
   };
 
   const cashOut = (count: number) => {
-    if (!isPlaying || isGameOver) return;
+    if (!isPlaying || isGameOver || count === 0) return;
     
     const multiplier = 1 + (count * 0.2 * (bombCount / 2));
     const winAmount = Math.floor(betAmount * multiplier);
+    
     addRobux(winAmount, 'Mines');
     setHasWon(true);
     setIsPlaying(false);
     setIsGameOver(true);
+  };
+
+  const resetGame = () => {
+    setIsGameOver(false);
+    setHasWon(false);
+    setMines([]);
+    setRevealed([]);
+    setIsPlaying(false);
   };
 
   return (
@@ -90,7 +105,7 @@ export default function MinesPage() {
                   value={betAmount} 
                   onChange={(e) => setBetAmount(Number(e.target.value))}
                   className="bg-background/50 border-white/10 h-12 pl-10"
-                  disabled={isPlaying}
+                  disabled={isPlaying || isGameOver}
                 />
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary font-bold">R$</span>
               </div>
@@ -105,24 +120,44 @@ export default function MinesPage() {
                 value={bombCount} 
                 onChange={(e) => setBombCount(Number(e.target.value))}
                 className="w-full accent-primary h-2 bg-white/10 rounded-lg appearance-none cursor-pointer"
-                disabled={isPlaying}
+                disabled={isPlaying || isGameOver}
               />
             </div>
 
-            {!isPlaying ? (
+            {(!isPlaying && !isGameOver) && (
               <Button 
                 onClick={startGame}
                 className="w-full h-14 text-lg font-black bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl glow-purple"
               >
                 START GAME
               </Button>
-            ) : (
+            )}
+
+            {isPlaying && (
+              <div className="space-y-2">
+                <Button 
+                  disabled
+                  className="w-full h-14 text-lg font-black bg-primary/20 text-primary border border-primary/20 rounded-2xl cursor-default"
+                >
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  Playing...
+                </Button>
+                <Button 
+                  onClick={() => cashOut(revealed.length)}
+                  disabled={revealed.length === 0}
+                  className="w-full h-14 text-lg font-black bg-success hover:bg-success/90 text-background rounded-2xl"
+                >
+                  CASH OUT
+                </Button>
+              </div>
+            )}
+
+            {isGameOver && (
               <Button 
-                onClick={() => cashOut(revealed.length)}
-                disabled={revealed.length === 0}
-                className="w-full h-14 text-lg font-black bg-success hover:bg-success/90 text-background rounded-2xl"
+                onClick={resetGame}
+                className="w-full h-14 text-lg font-black bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl"
               >
-                CASH OUT
+                <RefreshCw className="w-4 h-4 mr-2" /> PLAY AGAIN
               </Button>
             )}
           </div>
@@ -177,11 +212,11 @@ export default function MinesPage() {
                 <>
                   <Bomb className="w-16 h-16 text-red-500 mb-4" />
                   <h3 className="text-4xl font-headline font-black text-red-500 mb-2">BOOM!</h3>
-                  <p className="text-muted-foreground mb-6">Better luck next time, legend.</p>
+                  <p className="text-muted-foreground mb-6">Unlucky mine. Try again?</p>
                 </>
               )}
-              <Button onClick={() => setIsGameOver(false)} className="bg-white/10 hover:bg-white/20 border border-white/10">
-                <RefreshCw className="w-4 h-4 mr-2" /> Play Again
+              <Button onClick={resetGame} className="bg-primary text-primary-foreground h-14 px-8 rounded-xl font-black">
+                PLAY AGAIN
               </Button>
             </motion.div>
           )}
