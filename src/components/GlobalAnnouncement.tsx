@@ -12,7 +12,6 @@ const ANNOUNCEMENT_DURATION = 10000; // 10 seconds
 export const GlobalAnnouncement = () => {
   const db = useFirestore();
   
-  // تثبيت مرجع المستند لمنع إعادة التشغيل المستمر للخطاف (Hook)
   const activeDocRef = useMemo(() => {
     if (!db) return null;
     return doc(db, 'announcements', 'active');
@@ -28,26 +27,21 @@ export const GlobalAnnouncement = () => {
   useEffect(() => {
     if (!announcement) return;
 
-    // توليد معرف فريد ومستقر للرسالة
     const annId = announcement.createdAt?.seconds?.toString() || 
                   (announcement.text ? announcement.text.substring(0, 20) : 'none');
 
-    // إذا كانت الرسالة نشطة ولها معرف جديد لم نعالجه بعد
     if (announcement.active && annId !== lastProcessedIdRef.current) {
-      // تنظيف أي مؤقت سابق
       if (timerRef.current) clearTimeout(timerRef.current);
       
       lastProcessedIdRef.current = annId;
       setActiveAnn({ ...announcement, id: annId });
       setShow(true);
 
-      // ضبط مؤقت الاختفاء
       timerRef.current = setTimeout(() => {
         setShow(false);
       }, ANNOUNCEMENT_DURATION);
     } 
     
-    // إذا تم إيقاف الإعلان من لوحة التحكم يختفي فوراً
     if (announcement && announcement.active === false) {
       setShow(false);
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -125,7 +119,6 @@ export const GlobalAnnouncement = () => {
               </div>
             </div>
 
-            {/* Progress Bar */}
             <div className="absolute bottom-0 left-0 w-full h-1 bg-white/5">
               <motion.div
                 key={`bar-${activeAnn.id}`}

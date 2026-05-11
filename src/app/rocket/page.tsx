@@ -289,7 +289,7 @@ export default function RocketPage() {
                   initial={{ y: 300, opacity: 0, scale: 0.5 }}
                   animate={{ 
                     y: [300, 0, -10, 10, 0], 
-                    opacity: 0.2,
+                    opacity: 0.4,
                     scale: 1,
                   }}
                   exit={{ opacity: 0, scale: 2, filter: 'blur(20px)' }}
@@ -300,8 +300,8 @@ export default function RocketPage() {
                   className="absolute pointer-events-none z-0"
                 >
                   <div className="relative">
-                    <RocketIcon className="w-56 h-56 sm:w-80 sm:h-80 text-primary fill-primary/5 drop-shadow-[0_0_60px_rgba(200,153,255,0.2)]" />
-                    <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-32 h-32 bg-primary/20 blur-[60px] rounded-full animate-pulse" />
+                    <RocketIcon className="w-56 h-56 sm:w-80 sm:h-80 text-primary fill-primary/10 drop-shadow-[0_0_60px_rgba(200,153,255,0.3)]" />
+                    <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-32 h-32 bg-primary/30 blur-[60px] rounded-full animate-pulse" />
                   </div>
                 </motion.div>
               )}

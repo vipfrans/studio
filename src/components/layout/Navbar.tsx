@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Hammer, CreditCard, ArrowDownToLine, ChevronDown } from 'lucide-react';
+import { CreditCard, ArrowDownToLine, ChevronDown, ShieldCheck } from 'lucide-react';
 import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
 import { AdminPanel } from '@/components/AdminPanel';
@@ -18,7 +18,7 @@ export const Navbar = () => {
   const handleDeposit = () => {
     toast({
       title: "Deposit System",
-      description: "Deposit soon … until we get access in korone for this webite",
+      description: "Deposit soon … until we get access in korone for this website",
     });
   };
 
@@ -31,15 +31,14 @@ export const Navbar = () => {
 
   return (
     <>
-      <nav className="sticky top-0 z-50 px-3 sm:px-6 py-3 flex items-center justify-between backdrop-blur-md border-b border-white/5 bg-background/70 overflow-hidden">
+      {/* Removed overflow-hidden to allow dropdowns to show */}
+      <nav className="sticky top-0 z-50 px-3 sm:px-6 py-3 flex items-center justify-between backdrop-blur-md border-b border-white/5 bg-background/70">
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <Link href="/" className="flex items-center gap-2 sm:gap-3 group shrink-0">
-            {/* New Stylized 'K' Logo */}
-            <div className="w-8 h-8 sm:w-11 sm:h-11 bg-primary/10 rounded-lg sm:rounded-2xl flex items-center justify-center border-2 border-primary/40 group-hover:scale-110 group-hover:border-primary transition-all duration-300 shrink-0 relative overflow-hidden shadow-[0_0_20px_rgba(200,153,255,0.2)]">
-              {/* Shine Effect */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-              
-              <span className="relative z-10 font-headline font-black text-primary text-xl sm:text-2xl drop-shadow-[0_0_12px_rgba(200,153,255,1)] select-none">
+            {/* New Stylized 'K' Logo with Glow */}
+            <div className="w-9 h-9 sm:w-11 sm:h-11 bg-primary/10 rounded-lg sm:rounded-2xl flex items-center justify-center border-2 border-primary/40 group-hover:scale-110 group-hover:border-primary transition-all duration-300 shrink-0 relative overflow-hidden shadow-[0_0_25px_rgba(200,153,255,0.4)]">
+              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+              <span className="relative z-10 font-headline font-black text-primary text-xl sm:text-2xl drop-shadow-[0_0_15px_rgba(200,153,255,1)] select-none">
                 K
               </span>
             </div>
@@ -49,13 +48,15 @@ export const Navbar = () => {
             </span>
           </Link>
           
+          {/* Admin Toggle - Now also a Stylized K for consistency */}
           <Button
             variant="ghost"
             size="icon"
             onClick={toggleAdmin}
-            className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 shrink-0"
+            className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-primary/5 hover:bg-primary/20 border border-primary/20 shrink-0 relative overflow-hidden group/admin"
           >
-            <Hammer className="w-3.5 h-3.5 sm:w-5 h-5 text-primary" />
+            <span className="font-black text-primary text-xs group-hover/admin:scale-110 transition-transform">K</span>
+            <div className="absolute inset-0 bg-primary/5 blur-sm opacity-0 group-hover/admin:opacity-100 transition-opacity" />
           </Button>
         </div>
 
