@@ -63,7 +63,13 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const settingsRef = doc(db, 'settings', 'simulation');
     const unsub = onSnapshot(settingsRef, (docSnap) => {
       if (docSnap.exists()) {
-        setSimSettings(docSnap.data() as SimSettings);
+        const data = docSnap.data();
+        setSimSettings({
+          onlinePlayers: data.onlinePlayers ?? DEFAULT_SIM_SETTINGS.onlinePlayers,
+          chatMode: data.chatMode ?? DEFAULT_SIM_SETTINGS.chatMode,
+          minRocketBots: data.minRocketBots ?? DEFAULT_SIM_SETTINGS.minRocketBots,
+          maxRocketBots: data.maxRocketBots ?? DEFAULT_SIM_SETTINGS.maxRocketBots,
+        });
       } else {
         // Initialize default settings if not exists
         setDoc(settingsRef, DEFAULT_SIM_SETTINGS);

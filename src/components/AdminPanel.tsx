@@ -29,20 +29,25 @@ export const AdminPanel = () => {
   const handleGiveRobux = async () => {
     if (!targetUsername || !giftAmount || !db) return;
     setGifting(true);
-    const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('username', '==', targetUsername));
-    const querySnapshot = await getDocs(q);
-    
-    if (!querySnapshot.empty) {
-      const userDoc = querySnapshot.docs[0];
-      await updateDoc(doc(db, 'users', userDoc.id), {
-        balance: increment(parseInt(giftAmount))
-      });
-      alert(`Sent R$ ${giftAmount} to ${targetUsername}`);
-    } else {
-      alert("User not found!");
+    try {
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('username', '==', targetUsername));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        const userDoc = querySnapshot.docs[0];
+        await updateDoc(doc(db, 'users', userDoc.id), {
+          balance: increment(parseInt(giftAmount))
+        });
+        alert(`Sent R$ ${giftAmount} to ${targetUsername}`);
+      } else {
+        alert("User not found!");
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setGifting(false);
     }
-    setGifting(false);
   };
 
   const handlePostAnnouncement = () => {
@@ -86,44 +91,50 @@ export const AdminPanel = () => {
           </label>
           
           <div className="space-y-2">
-            <p className="text-[8px] text-muted-foreground uppercase font-black">Online Players: {simSettings.onlinePlayers}</p>
+            <p className="text-[8px] text-muted-foreground uppercase font-black">Online Players: {simSettings?.onlinePlayers || 0}</p>
             <Slider 
               min={500} 
               max={10000} 
               step={100} 
-              value={[simSettings.onlinePlayers]} 
+              value={[simSettings?.onlinePlayers || 3000]} 
               onValueChange={([val]) => updateSimSettings({ onlinePlayers: val })}
             />
           </div>
 
           <div className="space-y-2">
-            <p className="text-[8px] text-muted-foreground uppercase font-black">Rocket Bots Range: {simSettings.minRocketBots} - {simSettings.maxRocketBots}</p>
+            <p className="text-[8px] text-muted-foreground uppercase font-black">Rocket Bots Range: {simSettings?.minRocketBots || 0} - {simSettings?.maxRocketBots || 0}</p>
             <div className="flex gap-2">
               <Input 
                 type="number" 
                 placeholder="Min" 
-                value={simSettings.minRocketBots} 
-                onChange={e => updateSimSettings({ minRocketBots: parseInt(e.target.value) })}
+                value={simSettings?.minRocketBots || ''} 
+                onChange={e => {
+                  const val = parseInt(e.target.value);
+                  updateSimSettings({ minRocketBots: isNaN(val) ? 0 : val });
+                }}
                 className="h-8 text-[10px]"
               />
               <Input 
                 type="number" 
                 placeholder="Max" 
-                value={simSettings.maxRocketBots} 
-                onChange={e => updateSimSettings({ maxRocketBots: parseInt(e.target.value) })}
+                value={simSettings?.maxRocketBots || ''} 
+                onChange={e => {
+                  const val = parseInt(e.target.value);
+                  updateSimSettings({ maxRocketBots: isNaN(val) ? 0 : val });
+                }}
                 className="h-8 text-[10px]"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <p className="text-[8px] text-muted-foreground uppercase font-black">Chat Frequency: {simSettings.chatMode}</p>
+            <p className="text-[8px] text-muted-foreground uppercase font-black">Chat Frequency: {simSettings?.chatMode || 'M'}</p>
             <div className="grid grid-cols-4 gap-1">
               {['N', 'S', 'M', 'T'].map((m) => (
                 <Button 
                   key={m}
                   onClick={() => updateSimSettings({ chatMode: m as any })}
-                  variant={simSettings.chatMode === m ? 'default' : 'outline'}
+                  variant={simSettings?.chatMode === m ? 'default' : 'outline'}
                   className="h-8 text-[10px] font-bold p-0"
                 >
                   {m}
