@@ -79,8 +79,12 @@ export const GlobalAnnouncement = () => {
         >
           <div className="glass-purple p-4 rounded-2xl border-2 border-accent/40 shadow-[0_0_50px_rgba(255,153,230,0.3)] relative overflow-hidden">
             <div className="relative flex items-start gap-3 sm:gap-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-accent/20 rounded-xl flex items-center justify-center border border-accent/30 shrink-0">
-                <Megaphone className="w-5 h-5 sm:w-6 sm:h-6 text-accent" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden border border-accent/30 shrink-0">
+                <img 
+                  src={activeAnn.senderAvatar || "https://picsum.photos/seed/admin/48/48"} 
+                  className="w-full h-full object-cover" 
+                  alt="Sender"
+                />
               </div>
               
               <div className="flex-1 min-w-0">
@@ -99,7 +103,7 @@ export const GlobalAnnouncement = () => {
                     <ShieldCheck className="w-3.5 h-3.5 text-primary fill-primary/20 shrink-0" />
                   )}
                   <span className="text-[8px] font-black text-primary px-1.5 py-0.5 bg-primary/10 rounded border border-primary/20 uppercase shrink-0">
-                    Admin
+                    {activeAnn.senderRank || 'Founder & CEO'}
                   </span>
                 </div>
 

@@ -15,7 +15,6 @@ export const AdminPanel = () => {
   const db = useFirestore();
   
   const [targetMult, setTargetMult] = useState('');
-  const [senderName, setSenderName] = useState('Founder');
   const [annText, setAnnText] = useState('');
   const [annImage, setAnnImage] = useState('');
 
@@ -24,7 +23,7 @@ export const AdminPanel = () => {
   const [giftAmount, setGiftAmount] = useState('');
   const [gifting, setGifting] = useState(false);
 
-  // حماية: إذا لم يكن المستخدم هو Dew أو ليس OWNER، لا يظهر شيء
+  // Protection: if not dew or OWNER, don't show
   if (!userProfile || (userProfile.username?.toLowerCase() !== 'dew' && userProfile.role !== 'OWNER')) return null;
 
   const handleGiveRobux = async () => {
@@ -47,10 +46,16 @@ export const AdminPanel = () => {
   };
 
   const handlePostAnnouncement = () => {
-    if (!db) return;
+    if (!db || !userProfile) return;
+    
+    // Automatically determine rank label
+    const rankLabel = userProfile.role === 'OWNER' ? 'Founder & CEO' : 'Admin';
+    
     const annRef = doc(db, 'announcements', 'active');
     setDoc(annRef, {
-      senderName,
+      senderName: userProfile.username,
+      senderRank: rankLabel,
+      senderAvatar: userProfile.avatarUrl || '',
       text: annText,
       imageUrl: annImage,
       isVerified: isVerified,
@@ -58,6 +63,7 @@ export const AdminPanel = () => {
       createdAt: serverTimestamp(),
     });
     setAnnText('');
+    setAnnImage('');
   };
 
   return (
@@ -94,8 +100,12 @@ export const AdminPanel = () => {
             <Megaphone className="w-3 h-3" /> Broadcast Message
           </label>
           <div className="space-y-2">
-            <Input placeholder="Sender" value={senderName} onChange={e => setSenderName(e.target.value)} className="h-8 text-xs" />
-            <Input placeholder="Message" value={annText} onChange={e => setAnnText(e.target.value)} className="h-8 text-xs" />
+            <div className="p-2 bg-white/5 rounded-lg border border-white/10 mb-2">
+              <p className="text-[8px] text-muted-foreground uppercase font-black">Posting as:</p>
+              <p className="text-[10px] font-bold text-white">{userProfile.username} (Founder & CEO)</p>
+            </div>
+            <Input placeholder="Message Content" value={annText} onChange={e => setAnnText(e.target.value)} className="h-8 text-xs" />
+            <Input placeholder="Optional Image URL" value={annImage} onChange={e => setAnnImage(e.target.value)} className="h-8 text-xs" />
             <Button onClick={handlePostAnnouncement} className="w-full h-8 bg-accent text-background text-[10px] font-bold">BROADCAST</Button>
           </div>
         </div>

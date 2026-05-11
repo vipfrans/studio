@@ -20,7 +20,7 @@ export default function ProfilePage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!userProfile) return <div className="p-12 text-center">Loading Profile...</div>;
+  if (!userProfile) return <div className="p-12 text-center text-muted-foreground">Loading Profile...</div>;
 
   const handleUpdateUsername = async () => {
     const trimmedName = newUsername.trim();
