@@ -1,9 +1,11 @@
 
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Rocket, Bomb, Coins, Box, Users } from 'lucide-react';
+import { useFirestore, useCollection } from '@/firebase';
+import { collection, query, orderBy, limit } from 'firebase/firestore';
 
 interface Winning {
   id: string;
@@ -21,8 +23,17 @@ const GAME_ICONS = {
 };
 
 export const LastWinnings = () => {
+  const db = useFirestore();
   const [winnings, setWinnings] = useState<Winning[]>([]);
   const [onlinePlayers, setOnlinePlayers] = useState(74);
+
+  // جلب الانتصارات الحقيقية من Firestore
+  const winsQuery = useMemo(() => {
+    if (!db) return null;
+    return query(collection(db, 'real_winnings'), orderBy('createdAt', 'desc'), limit(5));
+  }, [db]);
+
+  const { data: realWins } = useCollection(winsQuery) as any;
 
   useEffect(() => {
     const generateWinning = () => {
@@ -33,19 +44,31 @@ export const LastWinnings = () => {
       const amount = Math.floor(Math.random() * 5000) + 10;
       
       const newWin: Winning = {
-        id: Math.random().toString(36),
+        id: 'sim-' + Math.random(),
         user: newUser,
         avatar: `https://picsum.photos/seed/${newUser}/40/40`,
         game,
         amount,
       };
 
-      setWinnings(prev => [newWin, ...prev].slice(0, 10));
+      setWinnings(prev => [newWin, ...prev].slice(0, 8));
     };
 
-    const interval = setInterval(generateWinning, 3000);
+    const interval = setInterval(generateWinning, 4000);
     return () => clearInterval(interval);
   }, []);
+
+  // دمج الحقيقي مع الوهمي
+  const combinedWinnings = useMemo(() => {
+    const formattedReal = (realWins || []).map((rw: any) => ({
+      id: rw.id,
+      user: rw.username,
+      avatar: `https://picsum.photos/seed/${rw.username}/40/40`,
+      game: rw.game as any,
+      amount: rw.amount
+    }));
+    return [...formattedReal, ...winnings].slice(0, 10);
+  }, [realWins, winnings]);
 
   useEffect(() => {
     const updateOnlinePlayers = () => {
@@ -77,8 +100,8 @@ export const LastWinnings = () => {
       
       <div className="flex-1 flex gap-3 sm:gap-4 overflow-x-auto no-scrollbar">
         <AnimatePresence mode="popLayout">
-          {winnings.map((win) => {
-            const Icon = GAME_ICONS[win.game];
+          {combinedWinnings.map((win) => {
+            const Icon = GAME_ICONS[win.game] || Rocket;
             return (
               <motion.div
                 key={win.id}

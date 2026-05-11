@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { CreditCard, ArrowDownToLine, ChevronDown, Hammer, LogOut, User } from 'lucide-react';
+import { CreditCard, ArrowDownToLine, ChevronDown, Hammer, LogOut, User, Languages } from 'lucide-react';
 import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
 import { AdminPanel } from '@/components/AdminPanel';
@@ -13,7 +13,7 @@ import { useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 
 export const Navbar = () => {
-  const { balance, toggleAdmin, isAdminOpen, userProfile, loading } = useRobux();
+  const { balance, toggleAdmin, isAdminOpen, userProfile, loading, lang, setLang } = useRobux();
   const { toast } = useToast();
   const auth = useAuth();
   const router = useRouter();
@@ -28,8 +28,8 @@ export const Navbar = () => {
 
   return (
     <>
-      <nav className="sticky top-0 z-50 px-3 sm:px-6 py-3 flex items-center justify-between backdrop-blur-md border-b border-white/5 bg-background/70">
-        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+      <nav className={`sticky top-0 z-50 px-3 sm:px-6 py-3 flex items-center justify-between backdrop-blur-md border-b border-white/5 bg-background/70 ${lang === 'AR' ? 'flex-row-reverse' : ''}`}>
+        <div className={`flex items-center gap-2 sm:gap-4 shrink-0 ${lang === 'AR' ? 'flex-row-reverse' : ''}`}>
           <Link href="/" className="flex items-center gap-2 group shrink-0">
             <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center border-2 border-primary/40 shadow-[0_0_20px_rgba(200,153,255,0.4)] relative">
               <span className="font-headline font-black text-primary text-xl">K</span>
@@ -37,6 +37,16 @@ export const Navbar = () => {
             <span className="font-headline text-lg font-black headline-gradient hidden xs:block">KoroneBet</span>
           </Link>
           
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setLang(lang === 'EN' ? 'AR' : 'EN')}
+            className="rounded-full bg-white/5 border border-white/10 gap-2 font-bold px-3"
+          >
+            <Languages className="w-4 h-4 text-primary" />
+            <span className="text-[10px]">{lang === 'EN' ? 'AR' : 'EN'}</span>
+          </Button>
+
           {isOwner && (
             <Button
               variant="ghost"
@@ -49,13 +59,15 @@ export const Navbar = () => {
           )}
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className={`flex items-center gap-2 sm:gap-4 ${lang === 'AR' ? 'flex-row-reverse' : ''}`}>
           {!userProfile && !loading ? (
             <Link href="/auth">
-              <Button className="bg-primary text-primary-foreground font-black px-6 rounded-xl">LOGIN</Button>
+              <Button className="bg-primary text-primary-foreground font-black px-6 rounded-xl">
+                {lang === 'EN' ? 'LOGIN' : 'دخول'}
+              </Button>
             </Link>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className={`flex items-center gap-2 ${lang === 'AR' ? 'flex-row-reverse' : ''}`}>
               <div className="relative">
                 <motion.div 
                   onClick={() => setIsBalanceMenuOpen(!isBalanceMenuOpen)}
@@ -75,7 +87,7 @@ export const Navbar = () => {
                       className="absolute top-full mt-2 right-0 w-48 bg-background/95 border-2 border-primary/30 rounded-2xl p-1 shadow-2xl z-50"
                     >
                       <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-3 hover:bg-red-500/10 rounded-xl text-red-500 text-sm font-bold">
-                        <LogOut className="w-4 h-4" /> LOGOUT
+                        <LogOut className="w-4 h-4" /> {lang === 'EN' ? 'LOGOUT' : 'خروج'}
                       </button>
                     </motion.div>
                   )}

@@ -1,12 +1,10 @@
+// src/firebase/config.ts
 
-/**
- * Firebase configuration object.
- */
 export const firebaseConfig = {
-  apiKey: "AIzaSyDummyKey",
-  authDomain: "project-id.firebaseapp.com",
-  projectId: "project-id",
-  storageBucket: "project-id.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef"
+  apiKey: "AIzaSyAv4PDoVjpJ_LMv7DgdftyLzGM-k01RwfI",
+  authDomain: "studio-4348277977-54123.firebaseapp.com",
+  projectId: "studio-4348277977-54123",
+  storageBucket: "studio-4348277977-54123.firebasestorage.app",
+  messagingSenderId: "57486675395",
+  appId: "1:57486675395:web:ecedb728d217e0fb760176"
 };

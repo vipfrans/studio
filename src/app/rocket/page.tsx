@@ -27,7 +27,7 @@ interface PlayerBet {
 }
 
 export default function RocketPage() {
-  const { balance, removeRobux, addRobux, nextCrashMultiplier, setNextCrashMultiplier, forceCrashTrigger } = useRobux();
+  const { balance, removeRobux, addRobux, nextCrashMultiplier, setNextCrashMultiplier, forceCrashTrigger, userProfile, lang } = useRobux();
   const [betAmount, setBetAmount] = useState(100);
   const [multiplier, setMultiplier] = useState(1.00);
   const [gameState, setGameState] = useState<'waiting' | 'flying' | 'crashed'>('waiting');
@@ -75,7 +75,8 @@ export default function RocketPage() {
     
     activeCrashTargetRef.current = nextCrashMultiplier;
     
-    const targetCount = Math.floor(Math.random() * 35) + 5;
+    // عدد واقعي من اللاعبين الوهميين (بين 15 إلى 45) ليعكس نشاطاً معقولاً
+    const targetCount = Math.floor(Math.random() * 30) + 15;
 
     countdownIntervalRef.current = setInterval(() => {
       setCountdown(prev => {
@@ -102,7 +103,7 @@ export default function RocketPage() {
         const newPlayer: PlayerBet = {
           user: randomName,
           bet: bet,
-          targetMultiplier: 1.1 + (Math.random() * 5),
+          targetMultiplier: 1.1 + (Math.random() * 4),
           cashedOut: false
         };
         return [...prev, newPlayer];
@@ -122,7 +123,8 @@ export default function RocketPage() {
       setMultiplier(currentMult);
 
       setActiveBets(prev => prev.map(p => {
-        if (p.user !== 'Admin' && !p.cashedOut && currentMult >= p.targetMultiplier) {
+        // لا نسحب اللاعب الحقيقي تلقائياً
+        if (p.user !== userProfile?.username && !p.cashedOut && currentMult >= p.targetMultiplier) {
           return { ...p, cashedOut: true, cashedOutAt: currentMult };
         }
         return p;
@@ -153,12 +155,12 @@ export default function RocketPage() {
   };
 
   const handlePlaceBet = () => {
-    if (gameState !== 'waiting' || balance < betAmount || isUserInRound) return;
+    if (gameState !== 'waiting' || balance < betAmount || isUserInRound || !userProfile) return;
     removeRobux(betAmount);
     setIsUserInRound(true);
     
     const userBet: PlayerBet = {
-      user: 'Admin',
+      user: userProfile.username,
       bet: betAmount,
       targetMultiplier: 999,
       cashedOut: false
@@ -169,23 +171,35 @@ export default function RocketPage() {
   const handleUserCashOut = () => {
     if (gameState !== 'flying' || hasCashedOut || !isUserInRound) return;
     const win = Math.floor(betAmount * multiplier);
-    addRobux(win);
+    addRobux(win, 'Rocket');
     setHasCashedOut(true);
     setActiveBets(prev => prev.map(p => {
-      if (p.user === 'Admin') return { ...p, cashedOut: true, cashedOutAt: multiplier };
+      if (p.user === userProfile?.username) return { ...p, cashedOut: true, cashedOutAt: multiplier };
       return p;
     }));
   };
 
+  const t = {
+    back: lang === 'EN' ? 'Back to Lobby' : 'الرجوع للرئيسية',
+    bet: lang === 'EN' ? 'Bet Amount' : 'مبلغ الرهان',
+    placeBet: lang === 'EN' ? 'PLACE BET' : 'تأكيد الرهان',
+    betPlaced: lang === 'EN' ? 'BET PLACED' : 'تم الرهان',
+    cashOut: lang === 'EN' ? 'CASH OUT' : 'سحب الأرباح',
+    crashed: lang === 'EN' ? 'CRASHED!' : 'انفجار!',
+    players: lang === 'EN' ? 'Players' : 'اللاعبين',
+    repairing: lang === 'EN' ? 'REPAIRING NEW LAUNCH...' : 'تجهيز الإطلاق القادم...',
+    exploded: lang === 'EN' ? 'Exploded at' : 'انفجر عند'
+  };
+
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12 pb-32">
+    <div className={`max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12 pb-32 ${lang === 'AR' ? 'rtl text-right' : ''}`}>
       <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary mb-6 sm:mb-8 transition-colors text-sm sm:text-base">
-        <ArrowLeft className="w-4 h-4" />
-        Back to Lobby
+        <ArrowLeft className={`w-4 h-4 ${lang === 'AR' ? 'rotate-180' : ''}`} />
+        {t.back}
       </Link>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8">
-        <div className="glass p-4 sm:p-6 rounded-2xl sm:rounded-3xl h-fit border-white/5 space-y-6 order-2 lg:order-1">
+      <div className={`grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8 ${lang === 'AR' ? 'lg:flex lg:flex-row-reverse lg:gap-8' : ''}`}>
+        <div className="lg:w-1/4 glass p-4 sm:p-6 rounded-2xl sm:rounded-3xl h-fit border-white/5 space-y-6">
           <h2 className="font-headline text-xl sm:text-2xl font-bold flex items-center gap-2">
             <RocketIcon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
             Rocket
@@ -193,7 +207,7 @@ export default function RocketPage() {
           
           <div className="space-y-4">
             <div>
-              <label className="text-[10px] font-bold text-muted-foreground uppercase mb-2 block">Bet Amount</label>
+              <label className="text-[10px] font-bold text-muted-foreground uppercase mb-2 block">{t.bet}</label>
               <div className="relative">
                 <Input 
                   type="number" 
@@ -216,7 +230,7 @@ export default function RocketPage() {
                     : 'bg-primary hover:bg-primary/90 text-primary-foreground glow-purple'
                 }`}
               >
-                {isUserInRound ? 'BET PLACED' : 'PLACE BET'}
+                {isUserInRound ? t.betPlaced : t.placeBet}
               </Button>
             ) : gameState === 'flying' ? (
               <Button 
@@ -228,29 +242,29 @@ export default function RocketPage() {
                     : 'bg-success text-background hover:bg-success/90 hover:scale-[1.02]'
                 }`}
               >
-                {!isUserInRound ? 'FLYING...' : hasCashedOut ? 'CASHED OUT' : `CASH OUT (R$ ${Math.floor(betAmount * multiplier)})`}
+                {!isUserInRound ? 'FLYING...' : hasCashedOut ? 'CASHED OUT' : `${t.cashOut} (R$ ${Math.floor(betAmount * multiplier)})`}
               </Button>
             ) : (
               <Button disabled className="w-full h-12 sm:h-14 text-base sm:text-lg font-black bg-red-500/20 text-red-500 border border-red-500/50 rounded-xl sm:rounded-2xl">
-                CRASHED
+                {lang === 'EN' ? 'CRASHED' : 'انفجر'}
               </Button>
             )}
           </div>
 
           <div className="pt-6 border-t border-white/5">
             <h3 className="text-[10px] font-bold text-muted-foreground uppercase mb-4 flex items-center gap-2">
-              <Users className="w-3.5 h-3.5" /> Players ({activeBets.length})
+              <Users className="w-3.5 h-3.5" /> {t.players} ({activeBets.length})
             </h3>
             <div className="space-y-2 max-h-[300px] sm:max-h-[400px] overflow-y-auto no-scrollbar">
               <AnimatePresence mode="popLayout">
-                {[...activeBets].sort((a,b) => (a.user === 'Admin' ? -1 : 1)).map((player, i) => (
+                {[...activeBets].sort((a,b) => (a.user === userProfile?.username ? -1 : 1)).map((player, i) => (
                   <motion.div 
                     key={`${player.user}-${i}`}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className={`flex justify-between items-center text-[11px] sm:text-sm p-2 sm:p-2.5 rounded-lg sm:rounded-xl ${player.user === 'Admin' ? 'bg-primary/10 border border-primary/30' : 'bg-white/5'}`}
+                    className={`flex justify-between items-center text-[11px] sm:text-sm p-2 sm:p-2.5 rounded-lg sm:rounded-xl ${player.user === userProfile?.username ? 'bg-primary/10 border border-primary/30' : 'bg-white/5'}`}
                   >
-                    <span className={`font-medium truncate max-w-[80px] sm:max-w-none ${player.user === 'Admin' ? 'text-primary font-black' : 'text-muted-foreground'}`}>
+                    <span className={`font-medium truncate max-w-[80px] sm:max-w-none ${player.user === userProfile?.username ? 'text-primary font-black' : 'text-muted-foreground'}`}>
                       {player.user}
                     </span>
                     <div className="flex items-center gap-1.5 sm:gap-2">
@@ -272,7 +286,7 @@ export default function RocketPage() {
           </div>
         </div>
 
-        <div className="lg:col-span-3 space-y-4 sm:space-y-6 order-1 lg:order-2">
+        <div className="lg:flex-1 space-y-4 sm:space-y-6">
           <div className="flex gap-2 sm:gap-3 overflow-x-auto no-scrollbar pb-1">
             {history.map((h, i) => (
               <div key={i} className={`flex-shrink-0 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl glass text-[10px] sm:text-xs font-bold ${h > 2 ? 'text-success border-success/20' : 'text-primary border-primary/20'}`}>
@@ -309,7 +323,9 @@ export default function RocketPage() {
 
             {gameState === 'waiting' && (
               <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-background/40 backdrop-blur-md px-4 text-center">
-                <div className="text-muted-foreground font-bold mb-1 sm:mb-2 uppercase tracking-widest text-[10px] sm:text-sm">Next Round Starting In</div>
+                <div className="text-muted-foreground font-bold mb-1 sm:mb-2 uppercase tracking-widest text-[10px] sm:text-sm">
+                  {lang === 'EN' ? 'Next Round Starting In' : 'تبدأ الجولة القادمة خلال'}
+                </div>
                 <motion.div 
                   key={countdown}
                   initial={{ scale: 1.5, opacity: 0 }}
@@ -320,7 +336,7 @@ export default function RocketPage() {
                 </motion.div>
                 <div className="mt-2 sm:mt-4 flex items-center gap-2 text-[10px] sm:text-xs text-white/40">
                   <Users className="w-3 h-3 sm:w-4 h-4" />
-                  <span>{activeBets.length} Players Waiting</span>
+                  <span>{activeBets.length} {lang === 'EN' ? 'Players Waiting' : 'لاعب ينتظر'}</span>
                 </div>
               </div>
             )}
@@ -365,9 +381,9 @@ export default function RocketPage() {
                   >
                     <Zap className="w-10 h-10 sm:w-14 sm:h-14 text-red-500 fill-red-500" />
                   </motion.div>
-                  <h3 className="text-5xl sm:text-8xl font-headline font-black text-red-500 mb-1 sm:mb-2 drop-shadow-[0_0_40px_rgba(255,0,0,0.6)]">CRASHED!</h3>
-                  <p className="text-xl sm:text-3xl text-muted-foreground">Exploded at <span className="text-white font-bold">{multiplier.toFixed(2)}x</span></p>
-                  <div className="mt-4 sm:mt-8 text-primary font-bold animate-pulse text-xs sm:text-base">REPAIRING NEW LAUNCH...</div>
+                  <h3 className="text-5xl sm:text-8xl font-headline font-black text-red-500 mb-1 sm:mb-2 drop-shadow-[0_0_40px_rgba(255,0,0,0.6)]">{t.crashed}</h3>
+                  <p className="text-xl sm:text-3xl text-muted-foreground">{t.exploded} <span className="text-white font-bold">{multiplier.toFixed(2)}x</span></p>
+                  <div className="mt-4 sm:mt-8 text-primary font-bold animate-pulse text-xs sm:text-base">{t.repairing}</div>
                 </motion.div>
               )}
             </AnimatePresence>

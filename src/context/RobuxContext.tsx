@@ -3,18 +3,20 @@
 
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useAuth, useFirestore, useDoc } from '@/firebase';
-import { doc, setDoc, updateDoc, increment } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, increment, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 interface RobuxContextType {
   balance: number;
   userProfile: any;
   loading: boolean;
-  addRobux: (amount: number) => void;
+  addRobux: (amount: number, game: string) => void;
   removeRobux: (amount: number) => void;
   isAdminOpen: boolean;
   toggleAdmin: () => void;
   isVerified: boolean;
   setIsVerified: (val: boolean) => void;
+  lang: 'EN' | 'AR';
+  setLang: (val: 'EN' | 'AR') => void;
   // Rocket Controls
   nextCrashMultiplier: number | null;
   setNextCrashMultiplier: (val: number | null) => void;
@@ -28,6 +30,7 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const auth = useAuth();
   const db = useFirestore();
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [lang, setLang] = useState<'EN' | 'AR'>('EN');
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -48,16 +51,25 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [nextCrashMultiplier, setNextCrashMultiplier] = useState<number | null>(null);
   const [forceCrashTrigger, setForceCrashTrigger] = useState(0);
 
-  // Sync isVerified with profile
   useEffect(() => {
     if (profile) {
       setIsVerified(profile.isVerified || false);
     }
   }, [profile]);
 
-  const addRobux = (amount: number) => {
-    if (!userDocRef) return;
+  const addRobux = (amount: number, game: string) => {
+    if (!userDocRef || !db) return;
     updateDoc(userDocRef, { balance: increment(amount) });
+    
+    // تسجيل الفوز ليظهر للآخرين (نستخدم مجموعة افتراضية للانتصارات الحقيقية)
+    if (amount > 0) {
+      addDoc(collection(db, 'real_winnings'), {
+        username: profile?.username || 'Player',
+        amount: amount,
+        game: game,
+        createdAt: serverTimestamp()
+      });
+    }
   };
 
   const removeRobux = (amount: number) => {
@@ -84,6 +96,8 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setIsVerified(val);
         if (userDocRef) updateDoc(userDocRef, { isVerified: val });
       },
+      lang,
+      setLang,
       nextCrashMultiplier,
       setNextCrashMultiplier,
       forceCrashTrigger,
