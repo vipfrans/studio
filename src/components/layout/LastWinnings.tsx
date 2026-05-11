@@ -47,10 +47,10 @@ export const LastWinnings = () => {
   }, []);
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-20 glass-purple z-50 overflow-hidden flex items-center px-6 gap-6">
-      <div className="flex-shrink-0 flex items-center gap-2 border-r border-white/10 pr-6 mr-6">
-        <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-        <span className="font-headline font-bold text-sm text-muted-foreground uppercase tracking-widest">Last Winnings</span>
+    <div className="fixed bottom-0 left-0 right-0 h-20 glass-purple z-50 overflow-hidden flex items-center px-6 gap-6 border-t-2 border-primary/20 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+      <div className="flex-shrink-0 flex items-center gap-3 border-r border-white/10 pr-6 mr-6">
+        <div className="w-3 h-3 rounded-full bg-success animate-pulse shadow-[0_0_10px_rgba(115,255,115,0.5)]" />
+        <span className="font-headline font-black text-sm text-primary uppercase tracking-widest">Last Winnings</span>
       </div>
       
       <div className="flex-1 flex gap-4 overflow-x-auto no-scrollbar">
@@ -61,19 +61,19 @@ export const LastWinnings = () => {
               <motion.div
                 key={win.id}
                 layout
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className="flex-shrink-0 flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-2"
+                initial={{ opacity: 0, x: -20, scale: 0.9 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="flex-shrink-0 flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-5 py-2 hover:bg-white/10 transition-colors cursor-default"
               >
-                <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10">
-                  <img src={win.avatar} alt={win.user} className="w-8 h-8 object-cover" />
+                <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-primary/30 shadow-lg">
+                  <img src={win.avatar} alt={win.user} className="w-full h-full object-cover" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-bold truncate max-w-[80px]">{win.user}</span>
-                  <div className="flex items-center gap-1">
-                    <Icon className="w-3 h-3 text-primary" />
-                    <span className="text-neon-green font-headline font-bold text-xs">
+                  <span className="text-[11px] font-black text-white/90 truncate max-w-[90px] uppercase">{win.user}</span>
+                  <div className="flex items-center gap-1.5">
+                    <Icon className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-neon-green font-headline font-black text-xs">
                       +R$ {win.amount.toLocaleString()}
                     </span>
                   </div>
