@@ -1,0 +1,29 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "rocket",
+      "description": "Futuristic rocket blasting off into purple space",
+      "imageUrl": "https://picsum.photos/seed/rocket99/600/400",
+      "imageHint": "rocket space"
+    },
+    {
+      "id": "mines",
+      "description": "Glowing purple crystals in a dark mine",
+      "imageUrl": "https://picsum.photos/seed/mines77/600/400",
+      "imageHint": "purple crystals"
+    },
+    {
+      "id": "coinflip",
+      "description": "Neon coin with purple and blue glows",
+      "imageUrl": "https://picsum.photos/seed/coinflip33/600/400",
+      "imageHint": "neon coin"
+    },
+    {
+      "id": "cases",
+      "description": "Premium glowing loot crate",
+      "imageUrl": "https://picsum.photos/seed/cases11/600/400",
+      "imageHint": "loot crate"
+    }
+  ]
+}
