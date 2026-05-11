@@ -26,7 +26,7 @@ const GAME_ICONS = {
 export const LastWinnings = () => {
   const db = useFirestore();
   const [winnings, setWinnings] = useState<Winning[]>([]);
-  const [onlinePlayers, setOnlinePlayers] = useState(74);
+  const [onlinePlayers, setOnlinePlayers] = useState(3214);
 
   const winsQuery = useMemo(() => {
     if (!db) return null;
@@ -84,9 +84,9 @@ export const LastWinnings = () => {
   useEffect(() => {
     const updateOnlinePlayers = () => {
       setOnlinePlayers(prev => {
-        const change = Math.floor(Math.random() * 7) - 3;
+        const change = Math.floor(Math.random() * 15) - 7;
         const newValue = prev + change;
-        return Math.max(68, Math.min(85, newValue));
+        return Math.max(3150, Math.min(3350, newValue));
       });
       const nextTime = Math.floor(Math.random() * 5000) + 10000;
       setTimeout(updateOnlinePlayers, nextTime);
@@ -105,7 +105,7 @@ export const LastWinnings = () => {
         <div className="flex items-center gap-1.5 mt-0.5 sm:mt-1">
           <Users className="w-2.5 h-2.5 text-muted-foreground" />
           <span className="text-[8px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-tighter hidden xs:inline">Online:</span>
-          <span className="text-[9px] sm:text-[10px] font-black text-white">{onlinePlayers}</span>
+          <span className="text-[9px] sm:text-[10px] font-black text-white">{onlinePlayers.toLocaleString()}</span>
         </div>
       </div>
       

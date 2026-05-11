@@ -18,13 +18,13 @@ const GAMES = [
 export default function Home() {
   const { toast } = useToast();
   const [claimStatus, setClaimStatus] = useState('CLAIM NOW');
-  const [chatOnline, setChatOnline] = useState(14);
+  const [chatOnline, setChatOnline] = useState(3142);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setChatOnline(prev => {
-        const change = Math.random() > 0.5 ? 1 : -1;
-        return Math.max(10, Math.min(20, prev + change));
+        const change = Math.random() > 0.5 ? Math.floor(Math.random() * 5) : -Math.floor(Math.random() * 5);
+        return Math.max(3050, Math.min(3250, prev + change));
       });
     }, 5000);
     return () => clearInterval(interval);
@@ -81,7 +81,7 @@ export default function Home() {
                     <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                       <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary/10 rounded-full border border-primary/20">
                         <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
-                        <span className="text-[10px] sm:text-xs font-black text-primary uppercase">{chatOnline} ONLINE NOW</span>
+                        <span className="text-[10px] sm:text-xs font-black text-primary uppercase">{chatOnline.toLocaleString()} ONLINE NOW</span>
                       </div>
                       <div className="flex items-center gap-2 text-[10px] sm:text-xs font-black text-success uppercase">
                         <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-success animate-pulse" />
