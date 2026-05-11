@@ -10,8 +10,12 @@ import { SnowParticles } from '@/components/effects/SnowParticles';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider, initializeFirebase } from '@/firebase';
 import { GlobalAnnouncement } from '@/components/GlobalAnnouncement';
+import { MaintenanceOverlay } from '@/components/MaintenanceOverlay';
 
 const { firebaseApp, firestore, auth } = initializeFirebase();
+
+// اجعل هذه القيمة true لتفعيل وضع الصيانة، و false لإلغائه
+const IS_MAINTENANCE = true;
 
 export default function RootLayout({
   children,
@@ -26,15 +30,21 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col overflow-x-hidden">
+        {IS_MAINTENANCE && <MaintenanceOverlay />}
+        
         <FirebaseClientProvider firebaseApp={firebaseApp} firestore={firestore} auth={auth}>
           <RobuxProvider>
-            <SnowParticles />
-            <Navbar />
-            <main className="flex-1 relative z-10 w-full max-w-7xl mx-auto">
-              {children}
-            </main>
-            <GlobalAnnouncement />
-            <LastWinnings />
+            {!IS_MAINTENANCE && (
+              <>
+                <SnowParticles />
+                <Navbar />
+                <main className="flex-1 relative z-10 w-full max-w-7xl mx-auto">
+                  {children}
+                </main>
+                <GlobalAnnouncement />
+                <LastWinnings />
+              </>
+            )}
             <Toaster />
           </RobuxProvider>
         </FirebaseClientProvider>
