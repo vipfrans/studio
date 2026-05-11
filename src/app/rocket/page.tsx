@@ -282,6 +282,31 @@ export default function RocketPage() {
           </div>
 
           <div className="glass-purple h-[300px] sm:h-[400px] lg:h-[500px] rounded-[24px] sm:rounded-[40px] relative overflow-hidden flex items-center justify-center border-2 border-primary/20 shadow-2xl">
+            {/* Flying Rocket Animation behind the text */}
+            <AnimatePresence>
+              {gameState === 'flying' && (
+                <motion.div
+                  initial={{ x: -200, y: 200, opacity: 0, rotate: 45 }}
+                  animate={{ 
+                    x: [0, -5, 5, 0], 
+                    y: [0, 5, -5, 0], 
+                    opacity: 0.35,
+                    rotate: [45, 43, 47, 45],
+                  }}
+                  exit={{ opacity: 0, scale: 0.5, y: -200, x: 200 }}
+                  transition={{ 
+                    x: { repeat: Infinity, duration: 2, ease: "easeInOut" },
+                    y: { repeat: Infinity, duration: 2.5, ease: "easeInOut" },
+                    rotate: { repeat: Infinity, duration: 0.8 },
+                    opacity: { duration: 0.5 }
+                  }}
+                  className="absolute pointer-events-none z-0"
+                >
+                  <RocketIcon className="w-48 h-48 sm:w-64 sm:h-64 text-primary fill-primary/20 drop-shadow-[0_0_30px_rgba(200,153,255,0.4)]" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {gameState === 'waiting' && (
               <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-background/40 backdrop-blur-md px-4 text-center">
                 <div className="text-muted-foreground font-bold mb-1 sm:mb-2 uppercase tracking-widest text-[10px] sm:text-sm">Next Round Starting In</div>
@@ -300,13 +325,13 @@ export default function RocketPage() {
               </div>
             )}
 
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-4">
+            <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none px-4">
               <span className={`text-[60px] sm:text-[100px] lg:text-[130px] font-headline font-black tracking-tighter transition-colors duration-300 ${gameState === 'crashed' ? 'text-red-500' : 'text-primary'} drop-shadow-2xl`}>
                 {multiplier.toFixed(2)}x
               </span>
             </div>
 
-            <svg className="absolute bottom-0 left-0 w-full h-full pointer-events-none">
+            <svg className="absolute bottom-0 left-0 w-full h-full pointer-events-none z-5">
               <motion.path
                 d={`M 0 500 Q ${gameState === 'flying' ? 400 : 0} ${gameState === 'flying' ? 500 - (multiplier * 20) : 500} 1200 ${gameState === 'flying' ? 500 - (multiplier * 40) : 500}`}
                 fill="none"
