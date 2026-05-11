@@ -102,14 +102,14 @@ export default function Home() {
                       <img 
                         src={imageData.imageUrl} 
                         alt={game.name} 
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 brightness-[0.6] group-hover:brightness-[0.8]" 
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 brightness-[0.7] group-hover:brightness-[0.9]" 
                         data-ai-hint={imageData.imageHint}
                       />
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent opacity-80" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
                   </div>
                   
-                  <div className="absolute inset-0 z-10 p-5 flex flex-col justify-between">
+                  <div className="absolute inset-0 z-10 p-6 flex flex-col justify-between">
                     <div className="flex justify-between items-start">
                       <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/10 group-hover:border-primary transition-colors shadow-xl">
                         <game.icon className="w-6 h-6 text-primary" />
