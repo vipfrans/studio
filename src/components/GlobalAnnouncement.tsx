@@ -19,14 +19,13 @@ export const GlobalAnnouncement = () => {
 
   useEffect(() => {
     if (announcement && announcement.active) {
-      // If it's a new announcement (different timestamp or text), show it
       const currentId = announcement.createdAt?.seconds?.toString() || announcement.text;
       if (currentId !== lastAnnId) {
         setLastAnnId(currentId);
         setIsVisible(true);
 
         const timer = setTimeout(() => {
-          handleDismiss();
+          handleAutoDismiss();
         }, ANNOUNCEMENT_DURATION);
 
         return () => clearTimeout(timer);
@@ -36,82 +35,86 @@ export const GlobalAnnouncement = () => {
     }
   }, [announcement]);
 
-  const handleDismiss = async () => {
+  const handleAutoDismiss = () => {
     setIsVisible(false);
-    // Optional: Update Firestore to set active to false so it doesn't show for others
-    // But since this is global, if one person dismisses it, it goes for all.
-    // Usually, you'd want individual dismiss logic, but per request, we clear the active flag.
+    // We don't necessarily need to clear Firestore here to allow others to see it,
+    // but the local state handles the exit animation.
+  };
+
+  const handleManualDismiss = async () => {
+    setIsVisible(false);
     if (db) {
       const annRef = doc(db, 'announcements', 'active');
       await updateDoc(annRef, { active: false });
     }
   };
 
-  if (!announcement || !announcement.active || !isVisible) return null;
-
   return (
     <AnimatePresence>
-      <motion.div
-        initial={{ y: -100, x: '-50%', opacity: 0 }}
-        animate={{ y: 0, x: '-50%', opacity: 1 }}
-        exit={{ y: -100, x: '-50%', opacity: 0 }}
-        className="fixed top-20 sm:top-24 left-1/2 -translate-x-1/2 z-[100] w-[95%] sm:w-[90%] max-w-2xl px-2"
-      >
-        <div className="glass-purple p-3 sm:p-5 rounded-xl sm:rounded-2xl border-2 border-accent/40 shadow-[0_0_40px_rgba(255,153,230,0.3)] relative overflow-hidden group">
-          <div className="absolute inset-0 bg-accent/5 animate-pulse" />
-          
-          <div className="relative flex items-start gap-3 sm:gap-4">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-accent/20 rounded-lg sm:rounded-xl flex items-center justify-center border border-accent/30 shrink-0">
-              <Megaphone className="w-5 h-5 sm:w-6 sm:h-6 text-accent" />
-            </div>
+      {isVisible && announcement && (
+        <motion.div
+          initial={{ y: -120, x: '-50%', opacity: 0, scale: 0.8 }}
+          animate={{ y: 0, x: '-50%', opacity: 1, scale: 1 }}
+          exit={{ y: -120, x: '-50%', opacity: 0, scale: 0.5, filter: 'blur(10px)' }}
+          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          className="fixed top-20 sm:top-24 left-1/2 -translate-x-1/2 z-[100] w-[95%] sm:w-[90%] max-w-2xl px-2"
+        >
+          <div className="glass-purple p-3 sm:p-5 rounded-xl sm:rounded-2xl border-2 border-accent/40 shadow-[0_0_50px_rgba(255,153,230,0.4)] relative overflow-hidden group">
+            <div className="absolute inset-0 bg-accent/5 animate-pulse" />
             
-            <div className="flex-1 space-y-1 overflow-hidden">
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-headline font-black text-accent text-[10px] sm:text-xs tracking-[0.2em] uppercase truncate">
-                  GLOBAL BROADCAST
-                </span>
-                <button onClick={handleDismiss} className="p-1 hover:bg-white/10 rounded-full transition-colors shrink-0">
-                  <X className="w-4 h-4 text-muted-foreground" />
-                </button>
+            <div className="relative flex items-start gap-3 sm:gap-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-accent/20 rounded-lg sm:rounded-xl flex items-center justify-center border border-accent/30 shrink-0">
+                <Megaphone className="w-5 h-5 sm:w-6 sm:h-6 text-accent" />
               </div>
-
-              <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                <span className="font-bold text-white text-xs sm:text-sm">{announcement.senderName}</span>
-                {announcement.isVerified && (
-                  <ShieldCheck className="w-3.5 h-3.5 text-primary fill-primary/20" />
-                )}
-                <span className="text-[8px] sm:text-[10px] font-black text-primary px-1.5 py-0.5 bg-primary/10 rounded border border-primary/20 uppercase">
-                  Admin
-                </span>
-              </div>
-
-              <p className="text-white/90 text-xs sm:text-sm leading-relaxed font-medium break-words">
-                {announcement.text}
-              </p>
-
-              {announcement.imageUrl && (
-                <div className="mt-2 rounded-lg overflow-hidden border border-white/10 shadow-lg">
-                  <img 
-                    src={announcement.imageUrl} 
-                    alt="Announcement" 
-                    className="w-full h-auto max-h-32 sm:max-h-48 object-cover"
-                  />
+              
+              <div className="flex-1 space-y-1 overflow-hidden">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-headline font-black text-accent text-[10px] sm:text-xs tracking-[0.2em] uppercase truncate">
+                    GLOBAL BROADCAST
+                  </span>
+                  <button onClick={handleManualDismiss} className="p-1 hover:bg-white/10 rounded-full transition-colors shrink-0">
+                    <X className="w-4 h-4 text-muted-foreground" />
+                  </button>
                 </div>
-              )}
+
+                <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                  <span className="font-bold text-white text-xs sm:text-sm">{announcement.senderName}</span>
+                  {announcement.isVerified && (
+                    <ShieldCheck className="w-3.5 h-3.5 text-primary fill-primary/20" />
+                  )}
+                  <span className="text-[8px] sm:text-[10px] font-black text-primary px-1.5 py-0.5 bg-primary/10 rounded border border-primary/20 uppercase">
+                    Admin
+                  </span>
+                </div>
+
+                <p className="text-white/90 text-xs sm:text-sm leading-relaxed font-medium break-words">
+                  {announcement.text}
+                </p>
+
+                {announcement.imageUrl && (
+                  <div className="mt-2 rounded-lg overflow-hidden border border-white/10 shadow-lg">
+                    <img 
+                      src={announcement.imageUrl} 
+                      alt="Announcement" 
+                      className="w-full h-auto max-h-32 sm:max-h-48 object-cover"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Progress Bar Timer */}
+            <div className="absolute bottom-0 left-0 w-full h-1 bg-white/10">
+              <motion.div
+                initial={{ width: '100%' }}
+                animate={{ width: '0%' }}
+                transition={{ duration: ANNOUNCEMENT_DURATION / 1000, ease: 'linear' }}
+                className="h-full bg-accent shadow-[0_0_10px_rgba(255,153,230,0.8)]"
+              />
             </div>
           </div>
-
-          {/* Progress Bar Timer */}
-          <div className="absolute bottom-0 left-0 w-full h-1 bg-white/10">
-            <motion.div
-              initial={{ width: '100%' }}
-              animate={{ width: '0%' }}
-              transition={{ duration: ANNOUNCEMENT_DURATION / 1000, ease: 'linear' }}
-              className="h-full bg-accent shadow-[0_0_10px_rgba(255,153,230,0.8)]"
-            />
-          </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      )}
     </AnimatePresence>
   );
 };

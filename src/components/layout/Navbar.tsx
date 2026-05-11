@@ -37,7 +37,7 @@ export const Navbar = () => {
             <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary/20 rounded-lg sm:rounded-xl flex items-center justify-center border border-primary/30 group-hover:scale-105 transition-transform">
               <span className="text-base sm:text-xl">⚒️</span>
             </div>
-            <span className="font-headline text-base sm:text-2xl font-bold tracking-tighter headline-gradient block">
+            <span className="font-headline text-base sm:text-2xl font-bold tracking-tighter headline-gradient">
               KoroneBet.xyz
             </span>
           </Link>
