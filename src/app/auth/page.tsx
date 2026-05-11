@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ShieldCheck, User, Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import { User, Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth, useFirestore } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
@@ -43,8 +43,8 @@ export default function AuthPage() {
 
     setLoading(true);
     
-    // Convert username to a valid Firebase email format
-    const email = `${username.toLowerCase().replace(/\s+/g, '')}@koronebet.xyz`;
+    // Create a virtual email for Firebase Auth
+    const email = `${username.toLowerCase().trim().replace(/\s+/g, '')}@koronebet.xyz`;
 
     try {
       if (isLogin) {
@@ -54,19 +54,23 @@ export default function AuthPage() {
       } else {
         const userCred = await createUserWithEmailAndPassword(auth, email, password);
         
-        // Create user profile in Firestore
+        // Initial balance is 0 and role is MEMBER unless the user is 'Dew'
+        const isOwner = username.toLowerCase() === 'dew';
+        
         await setDoc(doc(db, 'users', userCred.user.uid), {
           username: username,
           balance: 0,
-          role: username.toLowerCase() === 'dew' ? 'ADMIN' : 'MEMBER',
-          isVerified: username.toLowerCase() === 'dew',
-          uid: userCred.user.uid
+          role: isOwner ? 'ADMIN' : 'MEMBER',
+          isVerified: isOwner,
+          uid: userCred.user.uid,
+          createdAt: new Date().toISOString()
         });
         
-        toast({ title: "Account created!", description: "Welcome to KoroneBet!" });
+        toast({ title: "Account created!", description: "Welcome to KoroneBet! You started with 0 Robux." });
         router.push('/');
       }
     } catch (error: any) {
+      console.error("Auth Error:", error.code, error.message);
       let errorMessage = "An unexpected error occurred.";
       
       if (error.code === 'auth/email-already-in-use') {
@@ -74,7 +78,9 @@ export default function AuthPage() {
       } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
         errorMessage = "Invalid username or password.";
       } else if (error.code === 'auth/operation-not-allowed') {
-        errorMessage = "Email/Password sign-in is not enabled in Firebase Console.";
+        errorMessage = "Login method not enabled. Please enable Email/Password in Firebase Console.";
+      } else if (error.code === 'auth/api-key-not-valid') {
+        errorMessage = "Firebase API Key is missing or invalid. Please connect your Firebase project.";
       } else if (error.code === 'auth/network-request-failed') {
         errorMessage = "Network error. Please check your connection.";
       } else {
@@ -106,7 +112,7 @@ export default function AuthPage() {
             {isLogin ? 'WELCOME BACK' : 'CREATE ACCOUNT'}
           </h1>
           <p className="text-muted-foreground text-sm uppercase tracking-widest font-bold">
-            {isLogin ? 'Enter your details to play' : 'Join the elite community'}
+            {isLogin ? 'Enter your details to play' : 'Join the community'}
           </p>
         </div>
 
@@ -158,7 +164,7 @@ export default function AuthPage() {
           <div className="p-3 bg-primary/5 rounded-xl border border-primary/10 flex items-start gap-3">
             <AlertCircle className="w-4 h-4 text-primary shrink-0 mt-0.5" />
             <p className="text-[10px] text-muted-foreground leading-relaxed">
-              By registering, you agree to our terms of service. New players start with 0 Robux.
+              New players start with 0 Robux. By registering, you agree to our terms.
             </p>
           </div>
         )}
