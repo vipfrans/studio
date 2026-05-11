@@ -26,9 +26,23 @@ interface ChatMessage {
     username: string;
     text: string;
   } | null;
+  isSimulated?: boolean;
 }
 
 const ROLES: UserRole[] = ['ADMIN', 'VIP', 'MEMBER', 'USER'];
+const BOT_NAMES = ['Frosty_Blox', 'Lumine_Dev', 'VoidX_Gamer', 'Ghost_Rider', 'Stellar_YT', 'Valk_Queen', 'Rex_Bet', 'Kone_Pro'];
+const BOT_MESSAGES = [
+  "Good luck everyone!",
+  "Just hit a 5x on Rocket!",
+  "Mines is paying out today.",
+  "Who's up for a Coinflip?",
+  "This casino is fire.",
+  "KoroneBet is the best.",
+  "Waiting for the next round...",
+  "Big win incoming!",
+  "Nice catch!",
+  "Ggwp"
+];
 
 export default function ChatPage() {
   const db = useFirestore();
@@ -37,6 +51,7 @@ export default function ChatPage() {
   const [newMessage, setNewMessage] = useState('');
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   const [showRankPicker, setShowRankPicker] = useState(false);
+  const [simulatedMessages, setSimulatedMessages] = useState<ChatMessage[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const messagesQuery = useMemo(() => {
@@ -46,11 +61,47 @@ export default function ChatPage() {
 
   const { data: realMessages } = useCollection(messagesQuery) as any;
 
+  // Combine real and simulated messages
+  const allMessages = useMemo(() => {
+    const combined = [...realMessages, ...simulatedMessages];
+    return combined.sort((a, b) => {
+      const timeA = a.createdAt?.seconds || new Date(a.createdAt).getTime() / 1000 || 0;
+      const timeB = b.createdAt?.seconds || new Date(b.createdAt).getTime() / 1000 || 0;
+      return timeA - timeB;
+    });
+  }, [realMessages, simulatedMessages]);
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [realMessages]);
+  }, [allMessages]);
+
+  // Simulate bot messages
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const shouldSend = Math.random() > 0.7;
+      if (shouldSend) {
+        const botName = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
+        const botText = BOT_MESSAGES[Math.floor(Math.random() * BOT_MESSAGES.length)];
+        // 90% Member, 10% VIP
+        const role: UserRole = Math.random() > 0.9 ? 'VIP' : 'MEMBER';
+        
+        const newSimMsg: ChatMessage = {
+          id: 'sim-' + Date.now(),
+          userId: 'bot',
+          username: botName,
+          role: role,
+          text: botText,
+          avatarUrl: `https://picsum.photos/seed/${botName}/40/40`,
+          createdAt: new Date().toISOString(),
+          isSimulated: true
+        };
+        setSimulatedMessages(prev => [...prev, newSimMsg].slice(-20));
+      }
+    }, 8000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -70,7 +121,6 @@ export default function ChatPage() {
   const handleSend = async () => {
     if (!newMessage.trim() || !userProfile || !db) return;
 
-    // معالجة الأمر ;rank
     if (newMessage.startsWith(';rank') && userProfile.role === 'ADMIN') {
       const parts = newMessage.split(' ');
       if (parts.length >= 3) {
@@ -145,7 +195,7 @@ export default function ChatPage() {
 
       <div className="flex-1 glass-purple rounded-[32px] border-2 border-primary/20 flex flex-col overflow-hidden">
         <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 no-scrollbar">
-          {realMessages.map((msg: any) => (
+          {allMessages.map((msg: any) => (
             <motion.div 
               key={msg.id}
               initial={{ opacity: 0, x: msg.userId === userProfile?.uid ? 10 : -10 }}

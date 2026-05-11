@@ -34,13 +34,12 @@ export default function AuthPage() {
 
   const handleLogin = async () => {
     if (!formData.username || !formData.password) {
-      toast({ variant: "destructive", title: "Missing Fields", description: "Enter name and password." });
+      toast({ variant: "destructive", title: "Missing Fields", description: "Please enter both username and password." });
       return;
     }
 
     setLoading(true);
     try {
-      // البحث عن المستخدم باستخدام اليوزرنيم (بشكل غير حساس لحالة الأحرف)
       const q = query(collection(db, 'users'), where('usernameLowercase', '==', formData.username.trim().toLowerCase()));
       const snap = await getDocs(q);
       
@@ -53,18 +52,25 @@ export default function AuthPage() {
       const userData = snap.docs[0].data();
       await signInWithEmailAndPassword(auth, userData.internalEmail, formData.password);
       
-      toast({ title: "Welcome Back", description: `Legend ${userData.username} is here!` });
+      toast({ title: "Welcome Back", description: `Legend ${userData.username} has entered the lobby!` });
       router.push('/');
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Login Failed", description: "Invalid password or name." });
+      toast({ variant: "destructive", title: "Login Failed", description: "Invalid credentials. Please try again." });
     } finally {
       setLoading(false);
     }
   };
 
   const handleSignup = async () => {
-    if (!formData.username.trim() || !formData.password.trim() || !formData.inviteKey.trim()) {
-      toast({ variant: "destructive", title: "Incomplete Data", description: "Fill all fields." });
+    const username = formData.username.trim();
+    if (!username || !formData.password.trim() || !formData.inviteKey.trim()) {
+      toast({ variant: "destructive", title: "Incomplete Data", description: "Please fill all required fields." });
+      return;
+    }
+
+    // Restriction for 3-letter usernames
+    if (username.length < 4) {
+      toast({ variant: "destructive", title: "Username Taken", description: "This username is already occupied or restricted. Try a longer name." });
       return;
     }
 
@@ -75,38 +81,38 @@ export default function AuthPage() {
 
       const hardcodedKeys = ['KORONE-7777', 'KORONE-8888'];
       if (!keySnap.exists() && !hardcodedKeys.includes(formData.inviteKey.trim())) {
-        toast({ variant: "destructive", title: "Invalid Key", description: "Key does not exist." });
+        toast({ variant: "destructive", title: "Invalid Key", description: "This invite key does not exist." });
         setLoading(false);
         return;
       }
       
       if (keySnap.exists() && keySnap.data().isUsed) {
-        toast({ variant: "destructive", title: "Key Used", description: "This key has already been consumed." });
+        toast({ variant: "destructive", title: "Key Used", description: "This key has already been consumed by another user." });
         setLoading(false);
         return;
       }
 
-      const q = query(collection(db, 'users'), where('usernameLowercase', '==', formData.username.trim().toLowerCase()));
+      const q = query(collection(db, 'users'), where('usernameLowercase', '==', username.toLowerCase()));
       const userSnap = await getDocs(q);
       
       if (!userSnap.empty) {
-        toast({ variant: "destructive", title: "Username Taken", description: "Choose another name." });
+        toast({ variant: "destructive", title: "Username Taken", description: "This username is already taken. Choose another one." });
         setLoading(false);
         return;
       }
 
-      const internalEmail = `${formData.username.trim().toLowerCase()}_${Date.now()}@koronebet.local`;
+      const internalEmail = `${username.toLowerCase()}_${Date.now()}@koronebet.local`;
       const userCred = await createUserWithEmailAndPassword(auth, internalEmail, formData.password);
       
       await setDoc(doc(db, 'users', userCred.user.uid), {
-        username: formData.username.trim(),
-        usernameLowercase: formData.username.trim().toLowerCase(),
+        username: username,
+        usernameLowercase: username.toLowerCase(),
         balance: 100,
-        role: formData.username.toLowerCase() === 'dew' ? 'ADMIN' : 'MEMBER',
+        role: username.toLowerCase() === 'dew' ? 'ADMIN' : 'MEMBER',
         isVerified: true,
         uid: userCred.user.uid,
         internalEmail: internalEmail,
-        avatarUrl: `https://picsum.photos/seed/${formData.username.trim()}/100/100`,
+        avatarUrl: `https://picsum.photos/seed/${username}/100/100`,
         hasChangedUsername: false,
         stats: {
           totalGames: 0,
@@ -121,14 +127,14 @@ export default function AuthPage() {
       await setDoc(doc(db, 'invite_keys', formData.inviteKey.trim()), {
         key: formData.inviteKey.trim(),
         isUsed: true,
-        usedBy: formData.username.trim(),
+        usedBy: username,
         usedAt: serverTimestamp()
       }, { merge: true });
 
-      toast({ title: "Account Created!", description: "Welcome to KoroneBet!" });
+      toast({ title: "Account Created!", description: "Welcome to KoroneBet! Your journey begins now." });
       router.push('/');
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
+      toast({ variant: "destructive", title: "Signup Error", description: error.message });
     } finally {
       setLoading(false);
     }

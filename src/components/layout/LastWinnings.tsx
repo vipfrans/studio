@@ -13,6 +13,7 @@ interface Winning {
   avatar: string;
   game: 'Rocket' | 'Mines' | 'Coinflip' | 'Cases';
   amount: number;
+  isReal?: boolean;
 }
 
 const GAME_ICONS = {
@@ -27,13 +28,35 @@ export const LastWinnings = () => {
   const [winnings, setWinnings] = useState<Winning[]>([]);
   const [onlinePlayers, setOnlinePlayers] = useState(74);
 
-  // جلب الانتصارات الحقيقية من Firestore
   const winsQuery = useMemo(() => {
     if (!db) return null;
     return query(collection(db, 'real_winnings'), orderBy('createdAt', 'desc'), limit(5));
   }, [db]);
 
   const { data: realWins } = useCollection(winsQuery) as any;
+
+  // Add real winnings to the animated queue
+  useEffect(() => {
+    if (realWins && realWins.length > 0) {
+      const latestReal = realWins[0];
+      const winId = latestReal.id || Math.random().toString();
+      
+      setWinnings(prev => {
+        // Prevent duplicates
+        if (prev.some(w => w.id === winId)) return prev;
+        
+        const newWin: Winning = {
+          id: winId,
+          user: latestReal.username,
+          avatar: latestReal.avatarUrl || `https://picsum.photos/seed/${latestReal.username}/40/40`,
+          game: latestReal.game as any,
+          amount: latestReal.amount,
+          isReal: true
+        };
+        return [newWin, ...prev].slice(0, 10);
+      });
+    }
+  }, [realWins]);
 
   useEffect(() => {
     const generateWinning = () => {
@@ -51,24 +74,12 @@ export const LastWinnings = () => {
         amount,
       };
 
-      setWinnings(prev => [newWin, ...prev].slice(0, 8));
+      setWinnings(prev => [newWin, ...prev].slice(0, 10));
     };
 
     const interval = setInterval(generateWinning, 4000);
     return () => clearInterval(interval);
   }, []);
-
-  // دمج الحقيقي مع الوهمي
-  const combinedWinnings = useMemo(() => {
-    const formattedReal = (realWins || []).map((rw: any) => ({
-      id: rw.id,
-      user: rw.username,
-      avatar: `https://picsum.photos/seed/${rw.username}/40/40`,
-      game: rw.game as any,
-      amount: rw.amount
-    }));
-    return [...formattedReal, ...winnings].slice(0, 10);
-  }, [realWins, winnings]);
 
   useEffect(() => {
     const updateOnlinePlayers = () => {
@@ -100,7 +111,7 @@ export const LastWinnings = () => {
       
       <div className="flex-1 flex gap-3 sm:gap-4 overflow-x-auto no-scrollbar">
         <AnimatePresence mode="popLayout">
-          {combinedWinnings.map((win) => {
+          {winnings.map((win) => {
             const Icon = GAME_ICONS[win.game] || Rocket;
             return (
               <motion.div
@@ -109,7 +120,7 @@ export const LastWinnings = () => {
                 initial={{ opacity: 0, x: -20, scale: 0.9 }}
                 animate={{ opacity: 1, x: 0, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                className="flex-shrink-0 flex items-center gap-2 sm:gap-3 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl px-3 sm:px-5 py-1.5 sm:py-2 hover:bg-white/10 transition-colors cursor-default"
+                className={`flex-shrink-0 flex items-center gap-2 sm:gap-3 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl px-3 sm:px-5 py-1.5 sm:py-2 hover:bg-white/10 transition-colors cursor-default ${win.isReal ? 'border-primary/40 shadow-[0_0_15px_rgba(200,153,255,0.2)]' : ''}`}
               >
                 <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-primary/30 shadow-lg">
                   <img src={win.avatar} alt={win.user} className="w-full h-full object-cover" />

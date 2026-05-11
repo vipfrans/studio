@@ -1,9 +1,9 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { User, Settings, Shield, Target, TrendingUp, History, Coins, ArrowLeft, Check, Edit2, Loader2, Award } from 'lucide-react';
+import { User, Settings, Shield, Target, TrendingUp, History, Coins, ArrowLeft, Check, Edit2, Loader2, Award, Camera } from 'lucide-react';
 import Link from 'next/link';
 import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
@@ -12,29 +12,28 @@ import { useToast } from '@/hooks/use-toast';
 import { doc, getDocs, collection, query, where, updateDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 
-const AVATARS = [
-  "https://picsum.photos/seed/gamer1/100/100",
-  "https://picsum.photos/seed/pro/100/100",
-  "https://picsum.photos/seed/vibe/100/100",
-  "https://picsum.photos/seed/neon/100/100",
-  "https://picsum.photos/seed/cyber/100/100",
-  "https://picsum.photos/seed/king/100/100"
-];
-
 export default function ProfilePage() {
   const { userProfile, updateProfile, lang } = useRobux();
   const db = useFirestore();
   const { toast } = useToast();
   const [newUsername, setNewUsername] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!userProfile) return <div className="p-12 text-center">Loading Profile...</div>;
 
   const handleUpdateUsername = async () => {
-    if (!newUsername.trim() || userProfile.hasChangedUsername) return;
+    const trimmedName = newUsername.trim();
+    if (!trimmedName || userProfile.hasChangedUsername) return;
+
+    if (trimmedName.length < 4) {
+      toast({ variant: "destructive", title: "Error", description: "Username is already taken or restricted." });
+      return;
+    }
+
     setIsUpdating(true);
     try {
-      const q = query(collection(db, 'users'), where('usernameLowercase', '==', newUsername.trim().toLowerCase()));
+      const q = query(collection(db, 'users'), where('usernameLowercase', '==', trimmedName.toLowerCase()));
       const snap = await getDocs(q);
       if (!snap.empty) {
         toast({ variant: "destructive", title: "Error", description: "Username already taken." });
@@ -42,8 +41,8 @@ export default function ProfilePage() {
         return;
       }
       await updateProfile({
-        username: newUsername.trim(),
-        usernameLowercase: newUsername.trim().toLowerCase(),
+        username: trimmedName,
+        usernameLowercase: trimmedName.toLowerCase(),
         hasChangedUsername: true
       });
       toast({ title: "Success", description: "Username changed successfully!" });
@@ -59,6 +58,25 @@ export default function ProfilePage() {
     toast({ title: "Updated", description: "Profile picture changed!" });
   };
 
+  const onAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast({ variant: "destructive", title: "File too large", description: "Please select an image smaller than 2MB." });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        handleUpdateAvatar(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
     <div className={`max-w-6xl mx-auto px-4 py-8 sm:py-12 pb-32 ${lang === 'AR' ? 'rtl text-right' : ''}`}>
       <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary mb-8">
@@ -70,12 +88,16 @@ export default function ProfilePage() {
         {/* Profile Card */}
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-1 space-y-6">
           <div className="glass-purple p-8 rounded-[32px] border-2 border-primary/20 text-center relative overflow-hidden">
-            <div className="relative w-32 h-32 mx-auto mb-6">
+            <div className="relative w-32 h-32 mx-auto mb-6 group cursor-pointer" onClick={onAvatarClick}>
               <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full" />
-              <img src={userProfile.avatarUrl} alt="Avatar" className="w-full h-full rounded-full border-4 border-primary relative z-10 object-cover" />
+              <img src={userProfile.avatarUrl} alt="Avatar" className="w-full h-full rounded-full border-4 border-primary relative z-10 object-cover transition-transform group-hover:scale-105" />
+              <div className="absolute inset-0 flex items-center justify-center z-20 opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 rounded-full">
+                <Camera className="w-8 h-8 text-white" />
+              </div>
               <div className="absolute -bottom-2 -right-2 z-20 bg-primary text-primary-foreground p-1.5 rounded-full border-2 border-background">
                 <Shield className="w-4 h-4" />
               </div>
+              <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
             </div>
 
             <div className="flex items-center justify-center gap-2 mb-2">
@@ -115,20 +137,6 @@ export default function ProfilePage() {
                   <Button onClick={handleUpdateUsername} disabled={isUpdating || userProfile.hasChangedUsername} className="h-10 px-4">
                     {isUpdating ? <Loader2 className="animate-spin" /> : <Check className="w-4 h-4" />}
                   </Button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase">Select Avatar</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {AVATARS.map((url, i) => (
-                    <button 
-                      key={i} 
-                      onClick={() => handleUpdateAvatar(url)}
-                      className={`w-full aspect-square rounded-xl overflow-hidden border-2 transition-all ${userProfile.avatarUrl === url ? 'border-primary' : 'border-transparent opacity-50 hover:opacity-100'}`}
-                    >
-                      <img src={url} className="w-full h-full object-cover" />
-                    </button>
-                  ))}
                 </div>
               </div>
             </div>
