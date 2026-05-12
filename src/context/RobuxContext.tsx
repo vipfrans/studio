@@ -94,6 +94,37 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const { data: profile, loading } = useDoc(userDocRef);
 
+  // Watch for game results to clear active bets
+  useEffect(() => {
+    if (!db || !userDocRef || !profile?.activeRocketBet) return;
+
+    const gameRef = doc(db, 'settings', 'rocket_game');
+    const unsub = onSnapshot(gameRef, (snap) => {
+      const gameData = snap.data();
+      if (!gameData) return;
+
+      // If game crashed and user had a bet in that round that wasn't cashed out
+      if (gameData.status === 'crashed' && 
+          profile.activeRocketBet.roundId === gameData.roundId && 
+          !profile.activeRocketBet.cashedOut) {
+        
+        const startTime = gameData.startTime?.toMillis() || 0;
+        // Small buffer to ensure we don't clear it multiple times
+        if (Date.now() - startTime < 3000) {
+          recordLoss(profile.activeRocketBet.amount, 'Rocket');
+          updateDoc(userDocRef, { activeRocketBet: null });
+        }
+      }
+      
+      // Clear bet if it's a completely new round and last one is finished
+      if (gameData.status === 'waiting' && profile.activeRocketBet.roundId !== gameData.roundId) {
+         updateDoc(userDocRef, { activeRocketBet: null });
+      }
+    });
+
+    return () => unsub();
+  }, [db, userDocRef, profile?.activeRocketBet]);
+
   useEffect(() => {
     if (profile?.lastTransfer && profile.lastTransfer.timestamp) {
       const transfer = profile.lastTransfer;

@@ -1,13 +1,15 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef, memo } from 'react';
+import React, { useState, useEffect, useRef, memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Rocket as RocketIcon, ArrowLeft, Users, Zap, Flame } from 'lucide-react';
+import { Rocket as RocketIcon, ArrowLeft, Users, Flame } from 'lucide-react';
 import Link from 'next/link';
 import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useFirestore, useDoc } from '@/firebase';
+import { doc, updateDoc, serverTimestamp, onSnapshot, arrayUnion, setDoc, increment } from 'firebase/firestore';
 
 const REALISTIC_NAMES = ['Frosty_Blox', 'Lumine_Dev', 'VoidX_Gamer', 'Ghost_Rider', 'Stellar_YT', 'Valk_Queen', 'Neon_Player', 'Rex_Bet', 'Kone_Pro', 'Silent_Ace', 'Storm_Rider', 'Pixel_Warrior', 'Cyber_Punk', 'Robo_Gamer', 'Elite_King', 'Vortex', 'Pulse', 'Shadow', 'Azure', 'Cinder', 'Mystic', 'Blaze', 'Glitch', 'Static'];
 
@@ -28,7 +30,6 @@ interface PlayerBet {
   user: string;
   bet: number;
   avatarUrl?: string;
-  targetMultiplier: number;
   cashedOut: boolean;
   cashedOutAt?: number;
 }
@@ -44,15 +45,7 @@ const GlowingRocket = memo(({ isFlying, isCrashed }: { isFlying: boolean, isCras
       }}
     >
       <div className="relative">
-        {isCrashed ? (
-          <motion.div 
-            initial={{ scale: 0.5, opacity: 0 }}
-            animate={{ scale: 2.5, opacity: [1, 0] }}
-            className="absolute inset-0 bg-orange-600 blur-3xl rounded-full z-0"
-          />
-        ) : (
-          <div className="absolute inset-0 bg-primary blur-[40px] opacity-40 animate-pulse" />
-        )}
+        {!isCrashed && <div className="absolute inset-0 bg-primary blur-[40px] opacity-40 animate-pulse" />}
         
         <svg 
           width="140" 
@@ -98,147 +91,175 @@ const GlowingRocket = memo(({ isFlying, isCrashed }: { isFlying: boolean, isCras
 GlowingRocket.displayName = "GlowingRocket";
 
 export default function RocketPage() {
-  const { balance, removeRobux, addRobux, recordLoss, nextCrashMultiplier, setNextCrashMultiplier, userProfile, lang, forceCrashTrigger } = useRobux();
+  const db = useFirestore();
+  const { balance, removeRobux, addRobux, recordLoss, userProfile, lang } = useRobux();
+  
   const [betAmount, setBetAmount] = useState(100);
   const [multiplier, setMultiplier] = useState(1.00);
-  const [gameState, setGameState] = useState<'waiting' | 'flying' | 'crashed'>('waiting');
-  const [hasCashedOut, setHasCashedOut] = useState(false);
-  const [isUserInRound, setIsUserInRound] = useState(false);
-  const [history, setHistory] = useState<number[]>([1.45, 12.4, 2.1, 1.05, 5.5]);
   const [activeBets, setActiveBets] = useState<PlayerBet[]>([]);
-  const [countdown, setCountdown] = useState(5);
+  const [localCountdown, setLocalCountdown] = useState(0);
 
-  const multiplierRef = useRef(1.00);
-  const gameIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const gameDocRef = useMemo(() => doc(db, 'settings', 'rocket_game'), [db]);
+  const { data: gameData } = useDoc(gameDocRef) as any;
 
-  const stopAllIntervals = () => {
-    if (gameIntervalRef.current) clearInterval(gameIntervalRef.current);
-    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-  };
-
+  // Calculate Real-time Multiplier based on server time
   useEffect(() => {
-    if (gameState === 'flying' && forceCrashTrigger > 0) {
-      crashGame();
-    }
-  }, [forceCrashTrigger]);
+    if (!gameData || gameData.status !== 'flying') return;
 
-  useEffect(() => {
-    initWaitingPhase();
-    return () => stopAllIntervals();
-  }, []);
-
-  useEffect(() => {
-    if (gameState === 'waiting' && countdown > 0) {
-      playSound(SOUNDS.TICK, 0.3);
-    }
-  }, [countdown, gameState]);
-
-  const initWaitingPhase = () => {
-    stopAllIntervals();
-    setGameState('waiting');
-    setMultiplier(1.00);
-    multiplierRef.current = 1.00;
-    setCountdown(5);
-    setActiveBets([]);
-    setHasCashedOut(false);
-    setIsUserInRound(false);
-    
-    countdownIntervalRef.current = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          startFlying();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    const botCount = Math.floor(Math.random() * 8) + 4;
-    const shuffledNames = [...REALISTIC_NAMES].sort(() => 0.5 - Math.random());
-    const bots = shuffledNames.slice(0, botCount).map(name => ({
-      user: name,
-      bet: Math.floor(Math.random() * 500) + 50,
-      avatarUrl: `https://picsum.photos/seed/${name}/40/40`,
-      targetMultiplier: 1.1 + (Math.random() * 3),
-      cashedOut: false
-    }));
-    setActiveBets(bots);
-  };
-
-  const startFlying = () => {
-    stopAllIntervals();
-    setGameState('flying');
-    playSound(SOUNDS.START);
-    const currentLimit = nextCrashMultiplier;
-
-    gameIntervalRef.current = setInterval(() => {
-      multiplierRef.current += 0.01 + (multiplierRef.current * 0.003);
-      const currentMult = Number(multiplierRef.current.toFixed(2));
+    const interval = setInterval(() => {
+      const startTime = gameData.startTime?.toMillis() || Date.now();
+      const elapsed = Date.now() - startTime;
       
-      setMultiplier(currentMult);
+      // Growth formula: 1.05 ^ (seconds)
+      const seconds = elapsed / 1000;
+      const currentMult = Math.pow(1.065, seconds);
+      const roundedMult = Number(currentMult.toFixed(2));
+      
+      setMultiplier(roundedMult);
 
-      if (Math.random() > 0.5) {
-        setActiveBets(prev => prev.map(p => {
-          if (p.avatarUrl?.includes('picsum') && !p.cashedOut && currentMult >= p.targetMultiplier) {
-            return { ...p, cashedOut: true, cashedOutAt: currentMult };
-          }
-          return p;
-        }));
+      // Check if we hit the crash multiplier (Auto-drive for clients)
+      if (roundedMult >= gameData.crashMultiplier) {
+        handleCrashSync(roundedMult);
       }
+    }, 50);
 
-      if (currentLimit !== null && currentMult >= currentLimit) {
-        crashGame();
-        return;
-      }
+    return () => clearInterval(interval);
+  }, [gameData]);
 
-      if (currentLimit === null) {
-        if (Math.random() < 0.004 + (multiplierRef.current * 0.002)) {
-          crashGame();
-        }
+  // Handle local countdown for UI
+  useEffect(() => {
+    if (!gameData || gameData.status !== 'waiting') {
+      setLocalCountdown(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const startTime = gameData.startTime?.toMillis() || Date.now();
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, Math.ceil((5000 - elapsed) / 1000));
+      setLocalCountdown(remaining);
+
+      if (elapsed >= 5000) {
+        handleStartFlyingSync();
       }
     }, 100);
+
+    return () => clearInterval(interval);
+  }, [gameData]);
+
+  // Game State Driving (Client-side driver)
+  const handleCrashSync = async (finalMult: number) => {
+    if (!db || gameData?.status !== 'flying') return;
+    try {
+      await updateDoc(gameDocRef, {
+        status: 'crashed',
+        startTime: serverTimestamp(),
+        history: arrayUnion(finalMult)
+      });
+      playSound(SOUNDS.CRASH);
+    } catch (e) {}
   };
 
-  const crashGame = () => {
-    stopAllIntervals();
-    setGameState('crashed');
-    playSound(SOUNDS.CRASH);
-    setNextCrashMultiplier(null);
-    const finalMult = Number(multiplierRef.current.toFixed(2));
-    setHistory(prev => [finalMult, ...prev].slice(0, 10));
+  const handleStartFlyingSync = async () => {
+    if (!db || gameData?.status !== 'waiting') return;
+    try {
+      await updateDoc(gameDocRef, {
+        status: 'flying',
+        startTime: serverTimestamp()
+      });
+      playSound(SOUNDS.START);
+    } catch (e) {}
+  };
 
-    if (isUserInRound && !hasCashedOut) {
-      recordLoss(betAmount, 'Rocket');
+  const handleWaitCycleSync = async () => {
+    if (!db || gameData?.status !== 'crashed') return;
+    const startTime = gameData.startTime?.toMillis() || 0;
+    if (Date.now() - startTime < 4000) return;
+
+    try {
+      // Generate deterministic but random-looking crash point
+      const crashPoint = 1 + (Math.random() * Math.random() * 10);
+      await updateDoc(gameDocRef, {
+        status: 'waiting',
+        startTime: serverTimestamp(),
+        crashMultiplier: Number(crashPoint.toFixed(2)),
+        roundId: Date.now().toString()
+      });
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    if (gameData?.status === 'crashed') {
+      const timer = setTimeout(handleWaitCycleSync, 4100);
+      return () => clearTimeout(timer);
     }
+  }, [gameData]);
 
-    setTimeout(initWaitingPhase, 4000);
-  };
+  // User persistence logic
+  const isUserInRound = useMemo(() => {
+    return userProfile?.activeRocketBet?.roundId === gameData?.roundId;
+  }, [userProfile, gameData]);
+
+  const hasCashedOut = useMemo(() => {
+    return userProfile?.activeRocketBet?.cashedOut === true;
+  }, [userProfile]);
 
   const handlePlaceBet = async () => {
-    if (gameState !== 'waiting' || balance < betAmount || isUserInRound || !userProfile) return;
+    if (!userProfile || gameData?.status !== 'waiting' || isUserInRound || balance < betAmount) return;
+    
     await removeRobux(betAmount);
-    setIsUserInRound(true);
-    setActiveBets(prev => [{
-      user: userProfile.username,
-      bet: betAmount,
-      avatarUrl: userProfile.avatarUrl,
-      targetMultiplier: 999,
-      cashedOut: false
-    }, ...prev]);
+    await updateDoc(doc(db, 'users', userProfile.uid), {
+      activeRocketBet: {
+        amount: betAmount,
+        roundId: gameData.roundId,
+        cashedOut: false,
+        betAt: serverTimestamp()
+      }
+    });
   };
 
   const handleUserCashOut = async () => {
-    if (gameState !== 'flying' || hasCashedOut || !isUserInRound) return;
+    if (gameData?.status !== 'flying' || hasCashedOut || !isUserInRound) return;
     const win = Math.floor(betAmount * multiplier);
     playSound(SOUNDS.WIN);
+    
     await addRobux(win, 'Rocket');
-    setHasCashedOut(true);
-    setActiveBets(prev => prev.map(p => {
-      if (p.user === userProfile?.username) return { ...p, cashedOut: true, cashedOutAt: multiplier };
-      return p;
-    }));
+    await updateDoc(doc(db, 'users', userProfile.uid), {
+      'activeRocketBet.cashedOut': true,
+      'activeRocketBet.cashedOutAt': multiplier
+    });
   };
+
+  // Simulated Bots
+  useEffect(() => {
+    if (gameData?.status === 'waiting') {
+      const botCount = Math.floor(Math.random() * 8) + 4;
+      const shuffledNames = [...REALISTIC_NAMES].sort(() => 0.5 - Math.random());
+      const bots = shuffledNames.slice(0, botCount).map(name => ({
+        user: name,
+        bet: Math.floor(Math.random() * 500) + 50,
+        avatarUrl: `https://picsum.photos/seed/${name}/40/40`,
+        cashedOut: false
+      }));
+      setActiveBets(bots);
+    }
+    
+    if (gameData?.status === 'flying') {
+      const interval = setInterval(() => {
+        setActiveBets(prev => prev.map(p => {
+          if (!p.cashedOut && Math.random() < 0.05) {
+            return { ...p, cashedOut: true, cashedOutAt: multiplier };
+          }
+          return p;
+        }));
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [gameData?.status, multiplier]);
+
+  const displayHistory = useMemo(() => {
+    return (gameData?.history || []).slice(-10).reverse();
+  }, [gameData?.history]);
 
   return (
     <div className={`max-w-6xl mx-auto px-4 py-12 pb-32 ${lang === 'AR' ? 'rtl text-right' : ''}`}>
@@ -273,15 +294,15 @@ export default function RocketPage() {
               </div>
 
               <Button 
-                onClick={gameState === 'waiting' ? handlePlaceBet : handleUserCashOut} 
-                disabled={(gameState === 'waiting' && isUserInRound) || (gameState === 'flying' && hasCashedOut) || gameState === 'crashed'} 
+                onClick={gameData?.status === 'waiting' ? handlePlaceBet : handleUserCashOut} 
+                disabled={(gameData?.status === 'waiting' && isUserInRound) || (gameData?.status === 'flying' && hasCashedOut) || gameData?.status === 'crashed' || !gameData} 
                 className={`w-full h-16 font-black text-xl rounded-2xl transition-all shadow-xl ${
-                  gameState === 'flying' && !hasCashedOut && isUserInRound 
+                  gameData?.status === 'flying' && !hasCashedOut && isUserInRound 
                     ? 'bg-success hover:bg-success/90 text-background shadow-[0_0_30px_rgba(115,255,115,0.4)]' 
                     : 'bg-primary hover:bg-primary/90 text-primary-foreground'
                 }`}
               >
-                {gameState === 'waiting' ? (isUserInRound ? 'WAITING...' : 'PLACE BET') : (hasCashedOut ? 'CASHED OUT' : 'CASH OUT')}
+                {!gameData ? 'CONNECTING...' : gameData.status === 'waiting' ? (isUserInRound ? 'WAITING...' : 'PLACE BET') : (hasCashedOut ? 'CASHED OUT' : 'CASH OUT')}
               </Button>
             </div>
 
@@ -290,17 +311,27 @@ export default function RocketPage() {
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Active Players</p>
                 <div className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 rounded-full border border-primary/20">
                   <Users className="w-3 h-3 text-primary" />
-                  <span className="text-[11px] font-black text-primary">{activeBets.length}</span>
+                  <span className="text-[11px] font-black text-primary">{activeBets.length + (isUserInRound ? 1 : 0)}</span>
                 </div>
               </div>
               <div className="space-y-2 max-h-[300px] overflow-y-auto no-scrollbar pr-2">
+                {isUserInRound && (
+                  <div className={`flex items-center justify-between p-3 rounded-2xl border bg-primary/10 border-primary/40`}>
+                    <div className="flex items-center gap-3">
+                      <img src={userProfile?.avatarUrl} className="w-7 h-7 rounded-lg object-cover" alt="Avatar" />
+                      <span className="text-[11px] font-bold text-white truncate max-w-[80px]">YOU</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-white/40">R$ {userProfile?.activeRocketBet?.amount}</span>
+                      {hasCashedOut && (
+                        <span className="text-[10px] font-black text-success">{userProfile?.activeRocketBet?.cashedOutAt?.toFixed(2)}x</span>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {activeBets.map((player, i) => (
-                  <div key={i} className={`flex items-center justify-between p-3 rounded-2xl transition-all border ${
-                    player.cashedOut 
-                      ? 'bg-success/5 border-success/20' 
-                      : player.user === userProfile?.username 
-                        ? 'bg-primary/10 border-primary/40' 
-                        : 'bg-white/5 border-white/5'
+                  <div key={i} className={`flex items-center justify-between p-3 rounded-2xl border ${
+                    player.cashedOut ? 'bg-success/5 border-success/20' : 'bg-white/5 border-white/5'
                   }`}>
                     <div className="flex items-center gap-3">
                       <img src={player.avatarUrl} className="w-7 h-7 rounded-lg object-cover" alt="Avatar" />
@@ -321,7 +352,7 @@ export default function RocketPage() {
 
         <div className="lg:col-span-3 space-y-6">
           <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
-            {history.map((h, i) => (
+            {displayHistory.map((h, i) => (
               <div 
                 key={i} 
                 className={`px-4 py-1.5 rounded-lg text-xs font-black shrink-0 border-b-2 ${
@@ -340,10 +371,10 @@ export default function RocketPage() {
             
             <div className="relative flex items-center justify-center w-full h-full">
               <div className="relative z-10 flex items-center justify-center">
-                <GlowingRocket isFlying={gameState === 'flying'} isCrashed={gameState === 'crashed'} />
+                <GlowingRocket isFlying={gameData?.status === 'flying'} isCrashed={gameData?.status === 'crashed'} />
                 
                 <AnimatePresence>
-                  {gameState !== 'crashed' && (
+                  {gameData?.status !== 'crashed' && (
                     <motion.div 
                       key="active-multiplier"
                       initial={{ opacity: 1, scale: 0.8 }}
@@ -360,7 +391,7 @@ export default function RocketPage() {
             </div>
 
             <AnimatePresence>
-              {gameState === 'waiting' && (
+              {gameData?.status === 'waiting' && (
                 <motion.div 
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -369,13 +400,13 @@ export default function RocketPage() {
                 >
                   <div className="text-sm font-black uppercase tracking-[0.4em] text-primary/70 mb-4">Rocket starts at</div>
                   <div className="flex items-center gap-4">
-                    <span className="text-7xl font-black text-white">{countdown}</span>
+                    <span className="text-7xl font-black text-white">{localCountdown}</span>
                     <span className="text-xl font-black text-primary animate-pulse">SECONDS</span>
                   </div>
                 </motion.div>
               )}
 
-              {gameState === 'crashed' && (
+              {gameData?.status === 'crashed' && (
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
