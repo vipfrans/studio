@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -228,7 +227,7 @@ export default function AuthPage() {
                   <Input name="password" type="password" placeholder="Password" value={formData.password} onChange={handleInputChange} className="bg-black/20 border-white/10 h-14 pl-12 rounded-2xl" />
                 </div>
                 <Button onClick={handleLogin} disabled={loading} className="w-full h-16 bg-primary hover:bg-primary/90 rounded-2xl font-black shadow-[0_0_20px_rgba(200,153,255,0.3)]">
-                  {loading ? <Loader2 className="animate-spin" /> : 'ENTER LOBBY'}
+                  {loading ? <Loader2 className="animate-spin" /> : 'ENTER'}
                 </Button>
               </motion.div>
             ) : (

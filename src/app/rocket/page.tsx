@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useRef, memo } from 'react';
@@ -341,7 +340,7 @@ export default function RocketPage() {
                   exit={{ opacity: 0 }}
                   className="absolute inset-0 bg-background/60 backdrop-blur-sm flex flex-col items-center justify-center z-30"
                 >
-                  <div className="text-sm font-black uppercase tracking-[0.4em] text-primary/70 mb-4">LOBBY OPEN</div>
+                  <div className="text-sm font-black uppercase tracking-[0.4em] text-primary/70 mb-4">Rocket starts at</div>
                   <div className="flex items-center gap-4">
                     <span className="text-7xl font-black text-white">{countdown}</span>
                     <span className="text-xl font-black text-primary animate-pulse">SECONDS</span>
@@ -355,7 +354,6 @@ export default function RocketPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   className="absolute inset-0 bg-red-500/5 backdrop-blur-md flex flex-col items-center justify-center z-30"
                 >
-                  <div className="text-6xl sm:text-8xl font-black text-red-500 mb-4 drop-shadow-2xl">CRASHED!</div>
                   <div className="px-6 py-2 bg-red-500 text-white font-black rounded-full text-xl shadow-lg">
                     {multiplier.toFixed(2)}x
                   </div>
