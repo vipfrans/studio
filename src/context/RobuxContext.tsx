@@ -94,7 +94,7 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const { data: profile, loading } = useDoc(userDocRef);
 
-  // Watch for game results to clear active bets
+  // Global Sync Listener for Rocket Game Result Handling
   useEffect(() => {
     if (!db || !userDocRef || !profile?.activeRocketBet) return;
 
@@ -103,20 +103,20 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const gameData = snap.data();
       if (!gameData) return;
 
-      // If game crashed and user had a bet in that round that wasn't cashed out
+      // Logic: If the GLOBAL game crashes, and I have an active bet in THAT round
       if (gameData.status === 'crashed' && 
           profile.activeRocketBet.roundId === gameData.roundId && 
           !profile.activeRocketBet.cashedOut) {
         
+        // Clean up and record loss only once
         const startTime = gameData.startTime?.toMillis() || 0;
-        // Small buffer to ensure we don't clear it multiple times
         if (Date.now() - startTime < 3000) {
           recordLoss(profile.activeRocketBet.amount, 'Rocket');
           updateDoc(userDocRef, { activeRocketBet: null });
         }
       }
       
-      // Clear bet if it's a completely new round and last one is finished
+      // Cleanup if the round has completely changed
       if (gameData.status === 'waiting' && profile.activeRocketBet.roundId !== gameData.roundId) {
          updateDoc(userDocRef, { activeRocketBet: null });
       }

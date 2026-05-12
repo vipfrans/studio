@@ -9,7 +9,7 @@ import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useFirestore, useDoc } from '@/firebase';
-import { doc, updateDoc, serverTimestamp, onSnapshot, arrayUnion, setDoc, increment } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, arrayUnion, onSnapshot } from 'firebase/firestore';
 
 const REALISTIC_NAMES = ['Frosty_Blox', 'Lumine_Dev', 'VoidX_Gamer', 'Ghost_Rider', 'Stellar_YT', 'Valk_Queen', 'Neon_Player', 'Rex_Bet', 'Kone_Pro', 'Silent_Ace', 'Storm_Rider', 'Pixel_Warrior', 'Cyber_Punk', 'Robo_Gamer', 'Elite_King', 'Vortex', 'Pulse', 'Shadow', 'Azure', 'Cinder', 'Mystic', 'Blaze', 'Glitch', 'Static'];
 
@@ -92,7 +92,7 @@ GlowingRocket.displayName = "GlowingRocket";
 
 export default function RocketPage() {
   const db = useFirestore();
-  const { balance, removeRobux, addRobux, recordLoss, userProfile, lang } = useRobux();
+  const { balance, removeRobux, addRobux, userProfile, lang } = useRobux();
   
   const [betAmount, setBetAmount] = useState(100);
   const [multiplier, setMultiplier] = useState(1.00);
@@ -102,7 +102,7 @@ export default function RocketPage() {
   const gameDocRef = useMemo(() => doc(db, 'settings', 'rocket_game'), [db]);
   const { data: gameData } = useDoc(gameDocRef) as any;
 
-  // Calculate Real-time Multiplier based on server time
+  // Real-time Multiplier Sync
   useEffect(() => {
     if (!gameData || gameData.status !== 'flying') return;
 
@@ -110,14 +110,13 @@ export default function RocketPage() {
       const startTime = gameData.startTime?.toMillis() || Date.now();
       const elapsed = Date.now() - startTime;
       
-      // Growth formula: 1.05 ^ (seconds)
       const seconds = elapsed / 1000;
       const currentMult = Math.pow(1.065, seconds);
       const roundedMult = Number(currentMult.toFixed(2));
       
       setMultiplier(roundedMult);
 
-      // Check if we hit the crash multiplier (Auto-drive for clients)
+      // Check if we hit the crash multiplier (Global Driver)
       if (roundedMult >= gameData.crashMultiplier) {
         handleCrashSync(roundedMult);
       }
@@ -126,7 +125,7 @@ export default function RocketPage() {
     return () => clearInterval(interval);
   }, [gameData]);
 
-  // Handle local countdown for UI
+  // Global Countdown Handler
   useEffect(() => {
     if (!gameData || gameData.status !== 'waiting') {
       setLocalCountdown(0);
@@ -147,7 +146,6 @@ export default function RocketPage() {
     return () => clearInterval(interval);
   }, [gameData]);
 
-  // Game State Driving (Client-side driver)
   const handleCrashSync = async (finalMult: number) => {
     if (!db || gameData?.status !== 'flying') return;
     try {
@@ -177,8 +175,7 @@ export default function RocketPage() {
     if (Date.now() - startTime < 4000) return;
 
     try {
-      // Generate deterministic but random-looking crash point
-      const crashPoint = 1 + (Math.random() * Math.random() * 10);
+      const crashPoint = 1 + (Math.random() * Math.random() * 12);
       await updateDoc(gameDocRef, {
         status: 'waiting',
         startTime: serverTimestamp(),
@@ -195,7 +192,6 @@ export default function RocketPage() {
     }
   }, [gameData]);
 
-  // User persistence logic
   const isUserInRound = useMemo(() => {
     return userProfile?.activeRocketBet?.roundId === gameData?.roundId;
   }, [userProfile, gameData]);
@@ -230,7 +226,7 @@ export default function RocketPage() {
     });
   };
 
-  // Simulated Bots
+  // Bot Simulations (Visual only)
   useEffect(() => {
     if (gameData?.status === 'waiting') {
       const botCount = Math.floor(Math.random() * 8) + 4;
