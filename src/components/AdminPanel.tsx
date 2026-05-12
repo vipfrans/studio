@@ -12,7 +12,7 @@ import { doc, setDoc, serverTimestamp, collection, query, where, getDocs, update
 import { useToast } from '@/hooks/use-toast';
 
 export const AdminPanel = () => {
-  const { userProfile, toggleAdmin, setNextCrashMultiplier, triggerImmediateCrash, simSettings, updateSimSettings, totalOnline } = useRobux();
+  const { userProfile, toggleAdmin, simSettings, updateSimSettings, totalOnline } = useRobux();
   const db = useFirestore();
   const { toast } = useToast();
   
@@ -129,21 +129,41 @@ export const AdminPanel = () => {
     setAnnImage('');
   };
 
-  const handleSetCrashMultiplier = () => {
+  const handleSetCrashMultiplier = async () => {
     const mult = parseFloat(targetMult);
-    if (isNaN(mult) || mult <= 1) {
+    if (isNaN(mult) || mult <= 1 || !db) {
       toast({ variant: "destructive", title: "Invalid Multiplier", description: "Please enter a value greater than 1.00" });
       return;
     }
-    setNextCrashMultiplier(mult);
-    toast({
-      title: (
-        <div className="flex items-center gap-2">
-          <CheckCircle2 className="w-5 h-5 text-success" />
-          <span className="text-success font-black">Successfully Set at {mult.toFixed(2)}x</span>
-        </div>
-      ) as any,
-    });
+    
+    try {
+      const rocketRef = doc(db, 'settings', 'rocket_game');
+      await updateDoc(rocketRef, { crashMultiplier: mult });
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-success" />
+            <span className="text-success font-black">Next Crash: {mult.toFixed(2)}x</span>
+          </div>
+        ) as any,
+      });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Update Failed" });
+    }
+  };
+
+  const handleImmediateCrash = async () => {
+    if (!db) return;
+    try {
+      const rocketRef = doc(db, 'settings', 'rocket_game');
+      await updateDoc(rocketRef, { 
+        status: 'crashed',
+        startTime: serverTimestamp()
+      });
+      toast({ title: "Crashing Now!", variant: "destructive" });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Action Failed" });
+    }
   };
 
   const handleOnlinePlayersChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -283,7 +303,7 @@ export const AdminPanel = () => {
             <Input type="number" placeholder="Crash at..." value={targetMult} onChange={e => setTargetMult(e.target.value)} className="h-8 text-xs bg-black/10" />
             <div className="flex gap-2">
               <Button onClick={handleSetCrashMultiplier} className="flex-1 h-8 bg-primary text-background text-[10px] font-black uppercase">SET</Button>
-              <Button onClick={() => { triggerImmediateCrash(); toast({ title: "Crashing Now!", variant: "destructive" }); }} variant="destructive" className="flex-1 h-8 text-[10px] font-black uppercase">CRASH NOW</Button>
+              <Button onClick={handleImmediateCrash} variant="destructive" className="flex-1 h-8 text-[10px] font-black uppercase">CRASH NOW</Button>
             </div>
           </div>
         </div>
