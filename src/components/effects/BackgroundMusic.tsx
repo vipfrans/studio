@@ -11,18 +11,17 @@ export const BackgroundMusic = () => {
       if (audioRef.current) {
         audioRef.current.volume = 0;
         audioRef.current.play().then(() => {
-          // التدرج في الصوت ليكون مريحاً
           let vol = 0;
           const fadeInterval = setInterval(() => {
-            if (vol < 0.2) {
-              vol += 0.01;
+            if (vol < 0.15) {
+              vol += 0.005;
               if (audioRef.current) audioRef.current.volume = vol;
             } else {
               clearInterval(fadeInterval);
             }
-          }, 100);
+          }, 150);
         }).catch(() => {
-          // المتصفحات تمنع التشغيل التلقائي أحياناً
+          // Interaction required
         });
       }
     };
@@ -37,8 +36,7 @@ export const BackgroundMusic = () => {
 
   return (
     <audio ref={audioRef} loop preload="auto">
-      <source src="https://cdn.pixabay.com/audio/2022/01/18/audio_d0a13f69d2.mp3" type="audio/mpeg" />
+      <source src="https://cdn.pixabay.com/audio/2024/02/22/audio_651088f1b9.mp3" type="audio/mpeg" />
     </audio>
   );
 };
-

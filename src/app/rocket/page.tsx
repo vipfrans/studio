@@ -15,7 +15,7 @@ const SOUNDS = {
   TICK: "https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3",
   START: "https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3",
   WIN: "https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3",
-  CRASH: "https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3" // صوت انفجار حقيقي
+  CRASH: "https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3" 
 };
 
 const playSound = (url: string, volume = 0.5) => {
@@ -45,7 +45,7 @@ const GlowingRocket = memo(({ multiplier, isFlying, isCrashed }: { multiplier: n
         left: '50%',
         bottom: '40%',
         willChange: 'transform',
-        zIndex: 20
+        zIndex: 10
       }}
       className="flex flex-col items-center pointer-events-none"
     >
@@ -53,31 +53,48 @@ const GlowingRocket = memo(({ multiplier, isFlying, isCrashed }: { multiplier: n
         {isCrashed ? (
           <motion.div 
             initial={{ scale: 0.5, opacity: 0 }}
-            animate={{ scale: 2, opacity: [1, 0] }}
-            className="absolute inset-0 bg-orange-500 blur-3xl rounded-full"
+            animate={{ scale: 2.5, opacity: [1, 0] }}
+            className="absolute inset-0 bg-orange-600 blur-3xl rounded-full z-0"
           />
         ) : (
           <div className="absolute inset-0 bg-primary blur-[30px] opacity-30 animate-pulse" />
         )}
         
-        <svg width="100" height="150" viewBox="0 0 120 180" fill="none" xmlns="http://www.w3.org/2000/svg" className={`${isCrashed ? 'opacity-0' : 'opacity-100'} drop-shadow-[0_0_20px_rgba(200,153,255,0.5)]`}>
+        <svg 
+          width="100" 
+          height="150" 
+          viewBox="0 0 120 180" 
+          fill="none" 
+          xmlns="http://www.w3.org/2000/svg" 
+          className={`drop-shadow-[0_0_20px_rgba(200,153,255,0.5)] transition-colors duration-200 ${isCrashed ? 'brightness-50 saturate-200' : 'brightness-100'}`}
+        >
           <defs>
             <linearGradient id="rocketBody" x1="60" y1="20" x2="60" y2="160" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#D8B4FE" />
-              <stop offset="50%" stopColor="#C899FF" />
-              <stop offset="100%" stopColor="#A855F7" />
+              <stop offset="0%" stopColor={isCrashed ? "#F97316" : "#D8B4FE"} />
+              <stop offset="50%" stopColor={isCrashed ? "#EA580C" : "#C899FF"} />
+              <stop offset="100%" stopColor={isCrashed ? "#9A3412" : "#A855F7"} />
             </linearGradient>
           </defs>
-          <path d="M60 10C60 10 30 50 30 100C30 140 60 160 60 160C60 160 90 140 90 100C90 50 60 10 60 10Z" fill="url(#rocketBody)" stroke="#E9D5FF" strokeWidth="2" />
-          <path d="M30 120L10 155C10 155 30 160 40 145" fill="#9333EA" stroke="#E9D5FF" strokeWidth="1" />
-          <path d="M90 120L110 155C110 155 90 160 80 145" fill="#9333EA" stroke="#E9D5FF" strokeWidth="1" />
-          <circle cx="60" cy="70" r="12" fill="#1E1B4B" stroke="#E9D5FF" strokeWidth="2" />
+          <path d="M60 10C60 10 30 50 30 100C30 140 60 160 60 160C60 160 90 140 90 100C90 50 60 10 60 10Z" fill="url(#rocketBody)" stroke={isCrashed ? "#FB923C" : "#E9D5FF"} strokeWidth="2" />
+          <path d="M30 120L10 155C10 155 30 160 40 145" fill={isCrashed ? "#9A3412" : "#9333EA"} stroke={isCrashed ? "#FB923C" : "#E9D5FF"} strokeWidth="1" />
+          <path d="M90 120L110 155C110 155 90 160 80 145" fill={isCrashed ? "#9A3412" : "#9333EA"} stroke={isCrashed ? "#FB923C" : "#E9D5FF"} strokeWidth="1" />
+          <circle cx="60" cy="70" r="12" fill="#1E1B4B" stroke={isCrashed ? "#FB923C" : "#E9D5FF"} strokeWidth="2" />
         </svg>
 
         {isFlying && !isCrashed && (
           <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-10 flex flex-col items-center">
             <div className="w-6 h-16 bg-gradient-to-t from-transparent via-orange-500 to-yellow-300 blur-sm rounded-full animate-pulse" />
           </div>
+        )}
+        
+        {isCrashed && (
+           <motion.div 
+            animate={{ x: [-2, 2, -2], y: [-2, 2, -2] }}
+            transition={{ repeat: Infinity, duration: 0.1 }}
+            className="absolute -bottom-4 left-1/2 -translate-x-1/2"
+           >
+             <Flame className="w-12 h-12 text-orange-500 fill-orange-500 blur-[1px]" />
+           </motion.div>
         )}
       </div>
     </div>
@@ -332,12 +349,13 @@ export default function RocketPage() {
             <AnimatePresence>
               {gameState !== 'crashed' && (
                 <motion.div 
-                  initial={{ opacity: 1 }}
+                  initial={{ opacity: 1, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
-                  className={`text-7xl sm:text-9xl font-black transition-transform duration-200 relative z-10 select-none text-white`}
-                  style={{ textShadow: '0 0 30px rgba(0,0,0,0.5)' }}
+                  className={`text-7xl sm:text-9xl font-black relative z-40 select-none text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.7)]`}
+                  style={{ textShadow: '0 0 35px rgba(255,255,255,0.4)' }}
                 >
-                  {multiplier.toFixed(2)}<span className="text-3xl sm:text-5xl opacity-30 ml-1">x</span>
+                  {multiplier.toFixed(2)}<span className="text-3xl sm:text-5xl opacity-40 ml-1">x</span>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -348,7 +366,7 @@ export default function RocketPage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="absolute inset-0 bg-background/60 backdrop-blur-sm flex flex-col items-center justify-center z-30"
+                  className="absolute inset-0 bg-background/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60]"
                 >
                   <div className="text-sm font-black uppercase tracking-[0.4em] text-primary/70 mb-4">Rocket starts at</div>
                   <div className="flex items-center gap-4">
@@ -362,9 +380,9 @@ export default function RocketPage() {
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="absolute inset-0 bg-red-500/5 backdrop-blur-md flex flex-col items-center justify-center z-30"
+                  className="absolute inset-0 bg-red-500/5 backdrop-blur-md flex flex-col items-center justify-center z-[60]"
                 >
-                  <div className="px-6 py-2 bg-red-500 text-white font-black rounded-full text-xl shadow-lg relative z-50">
+                  <div className="px-6 py-2 bg-red-600 text-white font-black rounded-full text-2xl shadow-[0_0_30px_rgba(220,38,38,0.5)] border-2 border-red-400/50">
                     {multiplier.toFixed(2)}x
                   </div>
                 </motion.div>
@@ -376,4 +394,3 @@ export default function RocketPage() {
     </div>
   );
 }
-
