@@ -32,15 +32,23 @@ export default function AuthPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const validateUsername = (name: string) => {
+    const regex = /^[a-zA-Z0-9]+$/;
+    if (name.length < 3) return "Username must be at least 3 characters.";
+    if (!regex.test(name)) return "Username cannot contain dots, underscores, or special characters.";
+    return null;
+  };
+
   const handleLogin = async () => {
-    if (!formData.username || !formData.password) {
+    const usernameTrimmed = formData.username.trim();
+    if (!usernameTrimmed || !formData.password) {
       toast({ variant: "destructive", title: "Missing Fields", description: "Please enter both username and password." });
       return;
     }
 
     setLoading(true);
     try {
-      const q = query(collection(db, 'users'), where('usernameLowercase', '==', formData.username.trim().toLowerCase()));
+      const q = query(collection(db, 'users'), where('usernameLowercase', '==', usernameTrimmed.toLowerCase()));
       const snap = await getDocs(q);
       
       if (snap.empty) {
@@ -63,45 +71,57 @@ export default function AuthPage() {
 
   const handleSignup = async () => {
     const username = formData.username.trim();
-    if (!username || !formData.password.trim() || !formData.inviteKey.trim()) {
+    const password = formData.password.trim();
+    const inviteKey = formData.inviteKey.trim();
+
+    if (!username || !password || !inviteKey) {
       toast({ variant: "destructive", title: "Incomplete Data", description: "Please fill all required fields." });
       return;
     }
 
-    if (username.length < 4) {
-      toast({ variant: "destructive", title: "Username Taken", description: "This username is already occupied or restricted. Try a longer name." });
+    const usernameError = validateUsername(username);
+    if (usernameError) {
+      toast({ variant: "destructive", title: "Validation Error", description: usernameError });
+      return;
+    }
+
+    if (password.length < 8) {
+      toast({ variant: "destructive", title: "Validation Error", description: "Password must be at least 8 characters long." });
       return;
     }
 
     setLoading(true);
     try {
-      const keyRef = doc(db, 'invite_keys', formData.inviteKey.trim());
+      // 1. Check Invite Key
+      const hardcodedKeys = ['KORONE-7777', 'KORONE-8888'];
+      const keyRef = doc(db, 'invite_keys', inviteKey);
       const keySnap = await getDoc(keyRef);
 
-      const hardcodedKeys = ['KORONE-7777', 'KORONE-8888'];
-      if (!keySnap.exists() && !hardcodedKeys.includes(formData.inviteKey.trim())) {
+      if (!keySnap.exists() && !hardcodedKeys.includes(inviteKey)) {
         toast({ variant: "destructive", title: "Invalid Key", description: "This invite key does not exist." });
         setLoading(false);
         return;
       }
       
       if (keySnap.exists() && keySnap.data().isUsed) {
-        toast({ variant: "destructive", title: "Key Used", description: "This key has already been consumed by another user." });
+        toast({ variant: "destructive", title: "Key Used", description: "This key has already been consumed." });
         setLoading(false);
         return;
       }
 
+      // 2. Check Duplicate Username
       const q = query(collection(db, 'users'), where('usernameLowercase', '==', username.toLowerCase()));
       const userSnap = await getDocs(q);
       
       if (!userSnap.empty) {
-        toast({ variant: "destructive", title: "Username Taken", description: "This username is already taken. Choose another one." });
+        toast({ variant: "destructive", title: "Username Taken", description: "This username is already taken." });
         setLoading(false);
         return;
       }
 
+      // 3. Create Account
       const internalEmail = `${username.toLowerCase()}_${Date.now()}@koronebet.local`;
-      const userCred = await createUserWithEmailAndPassword(auth, internalEmail, formData.password);
+      const userCred = await createUserWithEmailAndPassword(auth, internalEmail, password);
       
       await setDoc(doc(db, 'users', userCred.user.uid), {
         username: username,
@@ -123,8 +143,9 @@ export default function AuthPage() {
         createdAt: serverTimestamp()
       });
 
-      await setDoc(doc(db, 'invite_keys', formData.inviteKey.trim()), {
-        key: formData.inviteKey.trim(),
+      // 4. Mark Key as Used
+      await setDoc(doc(db, 'invite_keys', inviteKey), {
+        key: inviteKey,
         isUsed: true,
         usedBy: username,
         usedAt: serverTimestamp()
@@ -179,11 +200,11 @@ export default function AuthPage() {
                 </div>
                 <div className="relative">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary/40" />
-                  <Input name="username" placeholder="Choose Username" value={formData.username} onChange={handleInputChange} className="bg-black/20 border-white/10 h-14 pl-12 rounded-2xl" />
+                  <Input name="username" placeholder="Username (Min 3 chars)" value={formData.username} onChange={handleInputChange} className="bg-black/20 border-white/10 h-14 pl-12 rounded-2xl" />
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary/40" />
-                  <Input name="password" type="password" placeholder="Create Password" value={formData.password} onChange={handleInputChange} className="bg-black/20 border-white/10 h-14 pl-12 rounded-2xl" />
+                  <Input name="password" type="password" placeholder="Password (Min 8 chars)" value={formData.password} onChange={handleInputChange} className="bg-black/20 border-white/10 h-14 pl-12 rounded-2xl" />
                 </div>
                 <Button onClick={handleSignup} disabled={loading} className="w-full h-16 bg-accent text-accent-foreground hover:bg-accent/90 rounded-2xl font-black shadow-[0_0_20px_rgba(255,153,230,0.3)]">
                   {loading ? <Loader2 className="animate-spin" /> : 'CREATE ACCOUNT'}

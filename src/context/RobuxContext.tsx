@@ -7,8 +7,8 @@ import { doc, updateDoc, increment, collection, addDoc, serverTimestamp, arrayUn
 
 interface SimSettings {
   onlinePlayers: number;
-  chatMode: 'N' | 'S' | 'M' | 'T'; // No, Small, Medium, Trend
-  winningsMode: 'N' | 'S' | 'M' | 'T'; // No, Slow, Medium, Turbo
+  chatMode: 'N' | 'S' | 'M' | 'T'; 
+  winningsMode: 'N' | 'S' | 'M' | 'T'; 
   minRocketBots: number;
   maxRocketBots: number;
 }
@@ -36,7 +36,7 @@ interface RobuxContextType {
 }
 
 const DEFAULT_SIM_SETTINGS: SimSettings = {
-  onlinePlayers: 2847, // رقم افتراضي أكثر واقعية للبداية
+  onlinePlayers: 3142,
   chatMode: 'M',
   winningsMode: 'M',
   minRocketBots: 4,
@@ -59,7 +59,6 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => unsubscribe();
   }, [auth]);
 
-  // Global Simulation Settings Listener
   useEffect(() => {
     if (!db) return;
     const settingsRef = doc(db, 'settings', 'simulation');
@@ -74,7 +73,6 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           maxRocketBots: data.maxRocketBots ?? DEFAULT_SIM_SETTINGS.maxRocketBots,
         });
       } else {
-        // Initialize default settings if not exists
         setDoc(settingsRef, DEFAULT_SIM_SETTINGS);
       }
     });
@@ -104,7 +102,7 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const addRobux = async (amount: number, game: string) => {
     if (!userDocRef || !db) return;
-    const safeGame = game || 'Unknown Game';
+    const safeGame = game || 'Game';
 
     await updateDoc(userDocRef, { 
       balance: increment(amount),
@@ -139,7 +137,7 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const recordLoss = async (amount: number, game: string) => {
     if (!userDocRef) return;
-    const safeGame = game || 'Unknown Game';
+    const safeGame = game || 'Game';
     await updateDoc(userDocRef, {
       gamesHistory: arrayUnion({
         game: safeGame,
