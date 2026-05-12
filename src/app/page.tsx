@@ -20,7 +20,7 @@ export default function Home() {
   const { toast } = useToast();
   const { simSettings } = useRobux();
   const [claimStatus, setClaimStatus] = useState('CLAIM NOW');
-  const [chatOnline, setChatOnline] = useState(3142);
+  const [chatOnline, setChatOnline] = useState(simSettings.onlinePlayers);
 
   useEffect(() => {
     setChatOnline(simSettings.onlinePlayers);

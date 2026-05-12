@@ -28,7 +28,7 @@ export const LastWinnings = () => {
   const db = useFirestore();
   const { simSettings } = useRobux();
   const [winnings, setWinnings] = useState<Winning[]>([]);
-  const [localOnline, setLocalOnline] = useState(3214);
+  const [localOnline, setLocalOnline] = useState(simSettings.onlinePlayers);
 
   const winsQuery = useMemo(() => {
     if (!db) return null;

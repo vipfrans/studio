@@ -36,7 +36,7 @@ interface RobuxContextType {
 }
 
 const DEFAULT_SIM_SETTINGS: SimSettings = {
-  onlinePlayers: 3142,
+  onlinePlayers: 2847, // رقم افتراضي أكثر واقعية للبداية
   chatMode: 'M',
   winningsMode: 'M',
   minRocketBots: 4,
