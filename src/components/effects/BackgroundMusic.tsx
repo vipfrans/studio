@@ -10,7 +10,7 @@ export const BackgroundMusic = () => {
     const playAudio = () => {
       if (audioRef.current) {
         audioRef.current.play().then(() => {
-          // Fade in
+          // Fade in effect
           let vol = 0;
           const fadeInterval = setInterval(() => {
             if (vol < 0.2) {
@@ -21,14 +21,14 @@ export const BackgroundMusic = () => {
             }
           }, 200);
         }).catch((err) => {
-          console.warn("Audio interaction required.");
+          console.warn("Audio interaction required to start background music.");
         });
       }
     };
 
     const handleInteraction = () => {
       playAudio();
-      // Remove all listeners after first interaction
+      // Remove all listeners after first interaction to save resources
       window.removeEventListener('click', handleInteraction);
       window.removeEventListener('touchstart', handleInteraction);
       window.removeEventListener('mousedown', handleInteraction);
@@ -50,8 +50,8 @@ export const BackgroundMusic = () => {
 
   return (
     <audio ref={audioRef} loop preload="auto">
-      {/* Musical Relaxing Cinematic Pads - Pixabay Direct CDN */}
-      <source src="https://cdn.pixabay.com/audio/2023/02/10/audio_7314787d5a.mp3" type="audio/mpeg" />
+      {/* Deep Calm Ambient Music - New Provided Link */}
+      <source src="https://cdn.pixabay.com/audio/2025/01/29/audio_d086f6717a.mp3" type="audio/mpeg" />
     </audio>
   );
 };
