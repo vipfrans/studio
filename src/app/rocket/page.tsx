@@ -15,7 +15,7 @@ const SOUNDS = {
   TICK: "https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3",
   START: "https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3",
   WIN: "https://cdn.discordapp.com/attachments/1221933758492442756/1503601417271906354/dragon-studio-register-cha-ching-376896.mp3?ex=6a03f171&is=6a029ff1&hm=9291113652cf37a4f315069dfc3af06dc961bd335a3497d2694a36d0a400a1d8&",
-  CRASH: "https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3" 
+  CRASH: "https://cdn.discordapp.com/attachments/1221933758492442756/1503604447782113310/u_xg7ssi08yr-bomb-explosion-2-381970_mp3cut.net.mp3?ex=6a03f443&is=6a02a2c3&hm=e4ad40e2cfb22ec295fd77ca68b31f83918129dc4a3cee430f8d79db243b9265&" 
 };
 
 const playSound = (url: string, volume = 0.5) => {
