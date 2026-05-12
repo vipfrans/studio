@@ -102,48 +102,78 @@ export default function RocketPage() {
   const gameDocRef = useMemo(() => doc(db, 'settings', 'rocket_game'), [db]);
   const { data: gameData } = useDoc(gameDocRef) as any;
 
-  // Real-time Multiplier Sync
+  // Recovery Logic & Game Loop Driver
   useEffect(() => {
-    if (!gameData || gameData.status !== 'flying') return;
+    if (!gameData || !db) return;
 
-    const interval = setInterval(() => {
-      const startTime = gameData.startTime?.toMillis() || Date.now();
-      const elapsed = Date.now() - startTime;
-      
-      const seconds = elapsed / 1000;
-      const currentMult = Math.pow(1.065, seconds);
-      const roundedMult = Number(currentMult.toFixed(2));
-      
-      setMultiplier(roundedMult);
+    const startTime = gameData.startTime?.toMillis() || Date.now();
+    const elapsed = Date.now() - startTime;
 
-      if (roundedMult >= gameData.crashMultiplier) {
-        handleCrashSync(roundedMult);
+    // 1. Recovery: If stuck in crashed for too long or astronomical multiplier
+    const checkSafety = async () => {
+      const currentSeconds = elapsed / 1000;
+      const currentCalcMult = Math.pow(1.065, currentSeconds);
+      
+      // If multiplier is insane (> 1000x) or status is crashed for > 10s, reset.
+      if ((gameData.status === 'flying' && currentCalcMult > 1000) || 
+          (gameData.status === 'crashed' && elapsed > 10000)) {
+        try {
+          const crashPoint = 1 + (Math.random() * Math.random() * 12);
+          await updateDoc(gameDocRef, {
+            status: 'waiting',
+            startTime: serverTimestamp(),
+            crashMultiplier: Number(crashPoint.toFixed(2)),
+            roundId: Date.now().toString()
+          });
+        } catch (e) {}
       }
-    }, 50);
+    };
 
-    return () => clearInterval(interval);
-  }, [gameData]);
+    checkSafety();
 
-  // Global Countdown Handler
-  useEffect(() => {
-    if (!gameData || gameData.status !== 'waiting') {
-      setLocalCountdown(0);
-      return;
+    // 2. Flying Loop
+    if (gameData.status === 'flying') {
+      const interval = setInterval(() => {
+        const nowElapsed = Date.now() - (gameData.startTime?.toMillis() || Date.now());
+        const seconds = nowElapsed / 1000;
+        const currentMult = Math.pow(1.065, seconds);
+        const roundedMult = Number(currentMult.toFixed(2));
+        
+        setMultiplier(roundedMult);
+
+        // Auto-Crash if reached limit
+        if (roundedMult >= (gameData.crashMultiplier || 1.1)) {
+          handleCrashSync(roundedMult);
+          clearInterval(interval);
+        }
+      }, 50);
+      return () => clearInterval(interval);
     }
 
-    const interval = setInterval(() => {
-      const startTime = gameData.startTime?.toMillis() || Date.now();
-      const elapsed = Date.now() - startTime;
-      const remaining = Math.max(0, Math.ceil((5000 - elapsed) / 1000));
-      setLocalCountdown(remaining);
+    // 3. Waiting Loop
+    if (gameData.status === 'waiting') {
+      const interval = setInterval(() => {
+        const nowElapsed = Date.now() - (gameData.startTime?.toMillis() || Date.now());
+        const remaining = Math.max(0, Math.ceil((5000 - nowElapsed) / 1000));
+        setLocalCountdown(remaining);
 
-      if (elapsed >= 5000) {
-        handleStartFlyingSync();
-      }
-    }, 100);
+        if (nowElapsed >= 5000) {
+          handleStartFlyingSync();
+          clearInterval(interval);
+        }
+      }, 100);
+      return () => clearInterval(interval);
+    }
 
-    return () => clearInterval(interval);
-  }, [gameData]);
+    // 4. Crashed Loop (Auto-reset after 4s)
+    if (gameData.status === 'crashed') {
+      const timer = setTimeout(() => {
+        handleWaitCycleSync();
+      }, 4500);
+      return () => clearTimeout(timer);
+    }
+
+  }, [gameData, db]);
 
   const handleCrashSync = async (finalMult: number) => {
     if (!db || gameData?.status !== 'flying') return;
@@ -170,9 +200,6 @@ export default function RocketPage() {
 
   const handleWaitCycleSync = async () => {
     if (!db || gameData?.status !== 'crashed') return;
-    const startTime = gameData.startTime?.toMillis() || 0;
-    if (Date.now() - startTime < 4000) return;
-
     try {
       const crashPoint = 1 + (Math.random() * Math.random() * 12);
       await updateDoc(gameDocRef, {
@@ -183,13 +210,6 @@ export default function RocketPage() {
       });
     } catch (e) {}
   };
-
-  useEffect(() => {
-    if (gameData?.status === 'crashed') {
-      const timer = setTimeout(handleWaitCycleSync, 4100);
-      return () => clearTimeout(timer);
-    }
-  }, [gameData]);
 
   const isUserInRound = useMemo(() => {
     return userProfile?.activeRocketBet?.roundId === gameData?.roundId;
@@ -225,11 +245,9 @@ export default function RocketPage() {
     });
   };
 
-  // Bot Simulations (Consistent within the same roundId)
+  // Bot Simulations
   useEffect(() => {
     if (!gameData?.roundId) return;
-
-    // Use roundId as a seed (simple hash) to make bot generation consistent on refresh
     const seed = gameData.roundId.split('').reduce((a: number, b: string) => (a + b.charCodeAt(0)), 0);
     const botCount = (seed % 8) + 4;
     
@@ -242,8 +260,6 @@ export default function RocketPage() {
     const bots = shuffledNames.slice(0, botCount).map((name, idx) => {
       const botSeed = seed + idx;
       const bet = (botSeed % 500) + 50;
-      // Simple logic to determine if a bot has cashed out based on multiplier
-      // On flying state, we will update them
       return {
         user: name,
         bet: bet,
@@ -255,7 +271,6 @@ export default function RocketPage() {
     setActiveBets(bots);
   }, [gameData?.roundId]);
 
-  // Handle Bot Cashouts during flight
   useEffect(() => {
     if (gameData?.status === 'flying') {
       const interval = setInterval(() => {
@@ -274,7 +289,6 @@ export default function RocketPage() {
     return (gameData?.history || []).slice(-10).reverse();
   }, [gameData?.history]);
 
-  // Button Rendering Logic
   const renderButton = () => {
     if (!gameData) return <Button disabled className="w-full h-16 rounded-2xl bg-primary/20">INITIALIZING...</Button>;
 
@@ -307,7 +321,7 @@ export default function RocketPage() {
           </Button>
         );
       }
-      return <Button disabled className="w-full h-16 rounded-2xl bg-white/5 text-muted-foreground font-black text-xl">GAME STARTED</Button>;
+      return <Button disabled className="w-full h-16 rounded-2xl bg-white/5 text-muted-foreground font-black text-xl uppercase">Game Started</Button>;
     }
 
     if (gameData.status === 'crashed') {
@@ -420,14 +434,13 @@ export default function RocketPage() {
                 <GlowingRocket isFlying={gameData?.status === 'flying'} isCrashed={gameData?.status === 'crashed'} />
                 
                 <AnimatePresence>
-                  {gameData?.status !== 'crashed' && (
+                  {(gameData?.status === 'flying' || gameData?.status === 'crashed') && (
                     <motion.div 
                       key="active-multiplier"
                       initial={{ opacity: 1, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="absolute z-[60] select-none text-white font-black text-7xl sm:text-9xl drop-shadow-[0_0_40px_rgba(255,255,255,0.9)] pointer-events-none whitespace-nowrap"
-                      style={{ textShadow: '0 0 60px rgba(255,255,255,0.7)' }}
+                      className={`absolute z-[60] select-none font-black text-7xl sm:text-9xl drop-shadow-[0_0_40px_rgba(255,255,255,0.9)] pointer-events-none whitespace-nowrap ${gameData.status === 'crashed' ? 'text-red-500' : 'text-white'}`}
+                      style={{ textShadow: gameData.status === 'crashed' ? '0 0 60px rgba(220,38,38,0.7)' : '0 0 60px rgba(255,255,255,0.7)' }}
                     >
                       {multiplier.toFixed(2)}<span className="text-3xl sm:text-5xl opacity-40 ml-1">x</span>
                     </motion.div>
@@ -458,8 +471,8 @@ export default function RocketPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   className="absolute inset-0 bg-red-500/5 backdrop-blur-md flex flex-col items-center justify-center z-[70]"
                 >
-                  <div className="px-8 py-3 bg-red-600 text-white font-black rounded-2xl text-3xl shadow-[0_0_40px_rgba(220,38,38,0.6)] border-2 border-red-400/50">
-                    {multiplier.toFixed(2)}x
+                  <div className="px-8 py-3 bg-red-600 text-white font-black rounded-2xl text-3xl shadow-[0_0_40px_rgba(220,38,38,0.6)] border-2 border-red-400/50 uppercase">
+                    Crashed!
                   </div>
                 </motion.div>
               )}
@@ -470,4 +483,3 @@ export default function RocketPage() {
     </div>
   );
 }
-
