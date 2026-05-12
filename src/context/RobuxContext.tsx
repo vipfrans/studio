@@ -67,19 +67,16 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => unsubscribe();
   }, [auth]);
 
-  // Ensure settings exist in Firestore
   useEffect(() => {
     if (!db) return;
     
     const initSettings = async () => {
-      // Simulation Settings
       const simRef = doc(db, 'settings', 'simulation');
       const simSnap = await getDoc(simRef);
       if (!simSnap.exists()) {
         await setDoc(simRef, DEFAULT_SIM_SETTINGS);
       }
 
-      // Rocket Game Initial State
       const rocketRef = doc(db, 'settings', 'rocket_game');
       const rocketSnap = await getDoc(rocketRef);
       if (!rocketSnap.exists()) {
@@ -95,7 +92,6 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     initSettings();
 
-    // Listen to sim settings
     const simRef = doc(db, 'settings', 'simulation');
     const unsubSim = onSnapshot(simRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -113,7 +109,6 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const { data: profile, loading } = useDoc(userDocRef);
 
-  // Global Sync Listener for Rocket Game Result Handling
   useEffect(() => {
     if (!db || !userDocRef || !profile?.activeRocketBet) return;
 
@@ -126,11 +121,8 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           profile.activeRocketBet.roundId === gameData.roundId && 
           !profile.activeRocketBet.cashedOut) {
         
-        const startTime = gameData.startTime?.toMillis() || 0;
-        if (Date.now() - startTime < 3000) {
-          recordLoss(profile.activeRocketBet.amount, 'Rocket');
-          updateDoc(userDocRef, { activeRocketBet: null });
-        }
+        recordLoss(profile.activeRocketBet.amount, 'Rocket');
+        updateDoc(userDocRef, { activeRocketBet: null });
       }
       
       if (gameData.status === 'waiting' && profile.activeRocketBet.roundId !== gameData.roundId) {
@@ -139,7 +131,7 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
 
     return () => unsub();
-  }, [db, userDocRef, profile?.activeRocketBet]);
+  }, [db, userDocRef, profile?.activeRocketBet, profile?.activeRocketBet?.roundId]);
 
   useEffect(() => {
     if (profile?.lastTransfer && profile.lastTransfer.timestamp) {
