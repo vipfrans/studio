@@ -21,6 +21,7 @@ interface RobuxContextType {
   loading: boolean;
   addRobux: (amount: number, game: string) => Promise<void>;
   removeRobux: (amount: number) => Promise<void>;
+  cancelRocketBet: (amount: number) => Promise<void>;
   recordLoss: (amount: number, game: string) => Promise<void>;
   isAdminOpen: boolean;
   toggleAdmin: () => void;
@@ -131,7 +132,7 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
 
     return () => unsub();
-  }, [db, userDocRef, profile?.activeRocketBet, profile?.activeRocketBet?.roundId]);
+  }, [db, userDocRef, profile?.activeRocketBet]);
 
   useEffect(() => {
     if (profile?.lastTransfer && profile.lastTransfer.timestamp) {
@@ -235,6 +236,14 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   };
 
+  const cancelRocketBet = async (amount: number) => {
+    if (!userDocRef) return;
+    await updateDoc(userDocRef, { 
+      balance: increment(amount),
+      activeRocketBet: null
+    });
+  };
+
   const recordLoss = async (amount: number, game: string) => {
     if (!userDocRef) return;
     const safeGame = game || 'Game';
@@ -272,6 +281,7 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       loading,
       addRobux, 
       removeRobux, 
+      cancelRocketBet,
       recordLoss,
       isAdminOpen, 
       toggleAdmin,

@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Send, Crown, CheckCircle, Reply, X, Star, ShieldCheck, Clock } from 'lucide-react';
+import { ArrowLeft, Send, Crown, CheckCircle, Reply, X, Star, ShieldCheck, Clock, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,7 +56,9 @@ export default function ChatPage() {
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   const [showRankPicker, setShowRankPicker] = useState(false);
   const [simulatedMessages, setSimulatedMessages] = useState<ChatMessage[]>([]);
+  const [isSending, setIsSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const lastMessageTime = useRef<number>(0);
 
   const messagesQuery = useMemo(() => {
     if (!db) return null;
@@ -130,7 +132,17 @@ export default function ChatPage() {
 
   const handleSend = async () => {
     const text = newMessage.trim();
-    if (!text || !userProfile || !db) return;
+    if (!text || !userProfile || !db || isSending) return;
+
+    // Rate Limit (2 seconds)
+    const now = Date.now();
+    if (now - lastMessageTime.current < 2000) {
+      toast({ variant: "destructive", title: "Slow down!", description: "Please wait a moment before sending another message." });
+      return;
+    }
+
+    setIsSending(true);
+    lastMessageTime.current = now;
 
     const isOwner = userProfile.role === 'OWNER' || userProfile.username?.toLowerCase() === 'dew';
 
@@ -139,8 +151,7 @@ export default function ChatPage() {
       const userSnap = await getDoc(userRef);
       const data = userSnap.data();
       const lastDaily = data?.lastDailyClaim?.toDate() || 0;
-      const now = new Date();
-      const diff = now.getTime() - new Date(lastDaily).getTime();
+      const diff = now - new Date(lastDaily).getTime();
       const oneDay = 24 * 60 * 60 * 1000;
 
       if (diff >= oneDay) {
@@ -148,22 +159,17 @@ export default function ChatPage() {
           balance: increment(10),
           lastDailyClaim: serverTimestamp()
         });
-        toast({
-          title: "Daily Claimed!",
-          description: "You received 10 Robux. Come back in 24 hours!",
-        });
+        toast({ title: "Daily Claimed!", description: "You received 10 Robux. Come back in 24 hours!" });
         setNewMessage('');
+        setIsSending(false);
         return;
       } else {
         const remaining = oneDay - diff;
         const hours = Math.floor(remaining / (60 * 60 * 1000));
         const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
-        toast({
-          variant: "destructive",
-          title: "Daily Not Ready",
-          description: `You can claim again in ${hours}h ${minutes}m.`,
-        });
+        toast({ variant: "destructive", title: "Daily Not Ready", description: `You can claim again in ${hours}h ${minutes}m.` });
         setNewMessage('');
+        setIsSending(false);
         return;
       }
     }
@@ -174,7 +180,6 @@ export default function ChatPage() {
       if (parts.length >= 3) {
         const targetUser = parts[1];
         const role = parts[2].toUpperCase() as UserRole;
-        
         if (ROLES.includes(role)) {
           const q = query(collection(db, 'users'), where('usernameLowercase', '==', targetUser.toLowerCase()));
           const snap = await getDocs(q);
@@ -187,24 +192,7 @@ export default function ChatPage() {
         }
       }
       setNewMessage('');
-      return;
-    }
-
-    // Unrank Command
-    if (text.startsWith(';unrank') && isOwner) {
-      const parts = text.split(' ');
-      if (parts.length >= 2) {
-        const targetUser = parts[1];
-        const q = query(collection(db, 'users'), where('usernameLowercase', '==', targetUser.toLowerCase()));
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          await updateDoc(doc(db, 'users', snap.docs[0].id), { role: 'USER' });
-          toast({ title: "Rank Removed", description: `${targetUser} is now a regular USER.` });
-        } else {
-          toast({ variant: "destructive", title: "Error", description: "User not found" });
-        }
-      }
-      setNewMessage('');
+      setIsSending(false);
       return;
     }
     
@@ -220,6 +208,7 @@ export default function ChatPage() {
 
     setNewMessage('');
     setReplyingTo(null);
+    setIsSending(false);
   };
 
   const renderRoleBadge = (role: UserRole, username?: string) => {
@@ -333,8 +322,8 @@ export default function ChatPage() {
               placeholder={lang === 'EN' ? "Type message..." : "اكتب رسالة..."}
               className="bg-white/5 border-white/10 h-12 rounded-xl"
             />
-            <Button onClick={handleSend} className="h-12 w-12 bg-primary rounded-xl">
-              <Send className="w-5 h-5" />
+            <Button onClick={handleSend} disabled={isSending} className="h-12 w-12 bg-primary rounded-xl">
+              {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
             </Button>
           </div>
         </div>

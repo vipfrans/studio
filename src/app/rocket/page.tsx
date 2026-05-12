@@ -92,7 +92,7 @@ GlowingRocket.displayName = "GlowingRocket";
 
 export default function RocketPage() {
   const db = useFirestore();
-  const { balance, removeRobux, addRobux, userProfile, lang } = useRobux();
+  const { balance, removeRobux, addRobux, cancelRocketBet, userProfile, lang } = useRobux();
   
   const [betAmount, setBetAmount] = useState(100);
   const [multiplier, setMultiplier] = useState(1.00);
@@ -214,9 +214,15 @@ export default function RocketPage() {
     });
   };
 
+  const handleCancelBet = async () => {
+    if (!userProfile || !isUserInRound || gameData?.status !== 'waiting') return;
+    const betVal = userProfile.activeRocketBet.amount;
+    await cancelRocketBet(betVal);
+  };
+
   const handleUserCashOut = async () => {
     if (gameData?.status !== 'flying' || hasCashedOut || !isUserInRound) return;
-    const win = Math.floor(betAmount * multiplier);
+    const win = Math.floor(userProfile.activeRocketBet.amount * multiplier);
     playSound(SOUNDS.WIN);
     
     await addRobux(win, 'Rocket');
@@ -278,7 +284,14 @@ export default function RocketPage() {
 
     if (gameData.status === 'waiting') {
       if (isUserInRound) {
-        return <Button disabled className="w-full h-16 rounded-2xl bg-primary/40 font-black text-xl">WAITING...</Button>;
+        return (
+          <Button 
+            onClick={handleCancelBet}
+            className="w-full h-16 bg-red-500/20 hover:bg-red-500/30 text-red-500 font-black text-xl rounded-2xl border border-red-500/30"
+          >
+            CANCEL BET
+          </Button>
+        );
       }
       return (
         <Button 
@@ -309,7 +322,15 @@ export default function RocketPage() {
     }
 
     if (gameData.status === 'crashed') {
-      return <Button disabled className="w-full h-16 rounded-2xl bg-red-500/20 text-red-500 font-black text-xl">CRASHED</Button>;
+      return (
+        <Button 
+          onClick={handlePlaceBet}
+          disabled={balance < betAmount}
+          className="w-full h-16 bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xl rounded-2xl"
+        >
+          PLACE BET
+        </Button>
+      );
     }
 
     return null;
@@ -341,7 +362,7 @@ export default function RocketPage() {
                     value={betAmount} 
                     onChange={e => setBetAmount(Number(e.target.value))} 
                     className="bg-black/20 border-white/10 h-14 font-black text-lg pl-12 rounded-2xl" 
-                    disabled={isUserInRound || (gameData?.status !== 'waiting')} 
+                    disabled={isUserInRound || (gameData?.status === 'flying')} 
                   />
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-primary font-black text-lg">R$</span>
                 </div>
