@@ -3,16 +3,18 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Sparkles, Rocket, Megaphone, UserPlus, Users, Key, Plus } from 'lucide-react';
+import { X, Sparkles, Rocket, Megaphone, UserPlus, Users, Key, Plus, CheckCircle2 } from 'lucide-react';
 import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useFirestore } from '@/firebase';
 import { doc, setDoc, serverTimestamp, collection, query, where, getDocs, updateDoc, increment } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 export const AdminPanel = () => {
   const { userProfile, toggleAdmin, setNextCrashMultiplier, triggerImmediateCrash, simSettings, updateSimSettings, totalOnline } = useRobux();
   const db = useFirestore();
+  const { toast } = useToast();
   
   const [targetMult, setTargetMult] = useState('');
   const [annText, setAnnText] = useState('');
@@ -35,17 +37,40 @@ export const AdminPanel = () => {
     setGifting(true);
     try {
       const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('username', '==', targetUsername));
+      const q = query(usersRef, where('usernameLowercase', '==', targetUsername.toLowerCase()));
       const querySnapshot = await getDocs(q);
       
       if (!querySnapshot.empty) {
         const userDoc = querySnapshot.docs[0];
+        const amount = parseInt(giftAmount);
+        
         await updateDoc(doc(db, 'users', userDoc.id), {
-          balance: increment(parseInt(giftAmount))
+          balance: increment(amount),
+          lastTransfer: {
+            sender: userProfile.username,
+            amount: amount,
+            timestamp: serverTimestamp()
+          }
         });
-        alert(`Sent R$ ${giftAmount} to ${targetUsername}`);
+        
+        toast({
+          title: (
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-success" />
+              <span>Transfer Complete</span>
+            </div>
+          ) as any,
+          description: `Sent R$ ${amount} to ${targetUsername} successfully.`,
+        });
+        
+        setTargetUsername('');
+        setGiftAmount('');
       } else {
-        alert("User not found!");
+        toast({
+          variant: "destructive",
+          title: "User Not Found",
+          description: "Make sure the username is correct.",
+        });
       }
     } catch (e) {
       console.error(e);
@@ -66,7 +91,10 @@ export const AdminPanel = () => {
         isUsed: false,
         createdAt: serverTimestamp()
       });
-      alert(`Key ${newKeyText.toUpperCase()} created with ${maxUses} uses!`);
+      toast({
+        title: "Key Created",
+        description: `Key ${newKeyText.toUpperCase()} is now active.`,
+      });
       setNewKeyText('');
       setMaxUses('1');
     } catch (e) {

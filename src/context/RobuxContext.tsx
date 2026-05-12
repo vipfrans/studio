@@ -1,9 +1,11 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth, useFirestore, useDoc } from '@/firebase';
 import { doc, updateDoc, increment, collection, addDoc, serverTimestamp, arrayUnion, onSnapshot, setDoc, query, where, Timestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+import { CheckCircle2 } from 'lucide-react';
 
 interface SimSettings {
   onlinePlayers: number;
@@ -49,10 +51,12 @@ const RobuxContext = createContext<RobuxContextType | undefined>(undefined);
 export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const auth = useAuth();
   const db = useFirestore();
+  const { toast } = useToast();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [lang, setLang] = useState<'EN' | 'AR'>('EN');
   const [simSettings, setSimSettings] = useState<SimSettings>(DEFAULT_SIM_SETTINGS);
   const [realOnlineCount, setRealOnlineCount] = useState(1);
+  const lastProcessedTransferRef = useRef<any>(null);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -88,6 +92,39 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [db, currentUser]);
 
   const { data: profile, loading } = useDoc(userDocRef);
+
+  // Transfer Notification Listener
+  useEffect(() => {
+    if (profile?.lastTransfer && profile.lastTransfer.timestamp) {
+      const transfer = profile.lastTransfer;
+      const ts = transfer.timestamp?.seconds || 0;
+      
+      if (!lastProcessedTransferRef.current || ts > lastProcessedTransferRef.current) {
+        lastProcessedTransferRef.current = ts;
+        
+        // Show the professional transfer toast
+        toast({
+          title: (
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-success" />
+              <span className="text-success font-black">SUCCESSFUL TRANSFER</span>
+            </div>
+          ) as any,
+          description: (
+            <div className="flex flex-col gap-1 mt-1">
+              <span className="text-white">
+                <span className="text-primary font-bold">@{transfer.sender}</span> has Transferred
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-success font-black text-lg">R$ {transfer.amount.toLocaleString()}</span>
+                <span className="text-white/60 font-bold uppercase text-[10px]">To You</span>
+              </div>
+            </div>
+          ) as any,
+        });
+      }
+    }
+  }, [profile?.lastTransfer, toast]);
 
   // Real-time Activity Tracking & Online Count
   useEffect(() => {
