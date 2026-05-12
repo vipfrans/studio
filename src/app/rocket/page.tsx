@@ -32,6 +32,7 @@ interface PlayerBet {
   avatarUrl?: string;
   cashedOut: boolean;
   cashedOutAt?: number;
+  targetMultiplier?: number;
 }
 
 const GlowingRocket = memo(({ isFlying, isCrashed }: { isFlying: boolean, isCrashed: boolean }) => {
@@ -102,6 +103,7 @@ export default function RocketPage() {
   const gameDocRef = useMemo(() => doc(db, 'settings', 'rocket_game'), [db]);
   const { data: gameData } = useDoc(gameDocRef) as any;
 
+  // Sync Logics
   const handleCrashSync = async (finalMult: number) => {
     if (!db || gameData?.status !== 'flying') return;
     try {
@@ -151,13 +153,13 @@ export default function RocketPage() {
         await handleStartFlyingSync();
       } else if (gameData.status === 'crashed' && elapsed > 3000) {
         await handleWaitCycleSync();
-      } else if (!gameData.status || elapsed > 600000) {
+      } else if (!gameData.status || (gameData.status === 'flying' && multiplier > 1000)) {
         await handleWaitCycleSync();
       }
     }, 1000);
 
     return () => clearInterval(heartbeat);
-  }, [gameData, db]);
+  }, [gameData, db, multiplier]);
 
   useEffect(() => {
     if (!gameData) return;
@@ -193,22 +195,25 @@ export default function RocketPage() {
     }
   }, [gameData]);
 
-  const isUserInRound = useMemo(() => {
-    return userProfile?.activeRocketBet?.roundId === gameData?.roundId;
-  }, [userProfile?.activeRocketBet?.roundId, gameData?.roundId]);
-
-  const hasCashedOut = useMemo(() => {
-    return userProfile?.activeRocketBet?.cashedOut === true;
-  }, [userProfile?.activeRocketBet?.cashedOut]);
+  // User States
+  const userBetInfo = userProfile?.activeRocketBet;
+  const isQueued = userBetInfo?.roundId === 'queued';
+  const isUserInCurrentRound = userBetInfo?.roundId === gameData?.roundId;
+  const hasCashedOut = userBetInfo?.cashedOut === true;
 
   const handlePlaceBet = async () => {
-    if (!userProfile || (gameData?.status !== 'waiting' && gameData?.status !== 'crashed') || isUserInRound || balance < betAmount) return;
+    if (!userProfile || isUserInCurrentRound || isQueued || balance < betAmount) return;
     
+    // Determine the roundId to save
+    // If we are in 'flying' status, it's definitely a queued bet for the next round.
+    // If we are in 'waiting' or 'crashed', it's for the current/approaching round.
+    const targetRoundId = (gameData?.status === 'flying') ? 'queued' : gameData.roundId;
+
     await removeRobux(betAmount);
     await updateDoc(doc(db, 'users', userProfile.uid), {
       activeRocketBet: {
         amount: betAmount,
-        roundId: gameData.roundId,
+        roundId: targetRoundId,
         cashedOut: false,
         betAt: serverTimestamp()
       }
@@ -216,14 +221,17 @@ export default function RocketPage() {
   };
 
   const handleCancelBet = async () => {
-    if (!userProfile || !isUserInRound || (gameData?.status !== 'waiting' && gameData?.status !== 'crashed')) return;
-    const betVal = userProfile.activeRocketBet.amount;
+    if (!userProfile || (!isUserInCurrentRound && !isQueued)) return;
+    // Cannot cancel if flight has already started and we are in it
+    if (isUserInCurrentRound && gameData?.status === 'flying') return;
+
+    const betVal = userBetInfo.amount;
     await cancelRocketBet(betVal);
   };
 
   const handleUserCashOut = async () => {
-    if (gameData?.status !== 'flying' || hasCashedOut || !isUserInRound) return;
-    const win = Math.floor(userProfile.activeRocketBet.amount * multiplier);
+    if (gameData?.status !== 'flying' || hasCashedOut || !isUserInCurrentRound) return;
+    const win = Math.floor(userBetInfo.amount * multiplier);
     playSound(SOUNDS.WIN);
     
     await addRobux(win, 'Rocket');
@@ -233,10 +241,11 @@ export default function RocketPage() {
     });
   };
 
+  // Bot Management
   useEffect(() => {
     if (!gameData?.roundId) return;
     const seed = gameData.roundId.split('').reduce((a: number, b: string) => (a + b.charCodeAt(0)), 0);
-    const botCount = (seed % 8) + 6;
+    const botCount = (seed % 8) + 8;
     
     const shuffledNames = [...REALISTIC_NAMES].sort((a, b) => {
       const hashA = a.split('').reduce((acc, char) => acc + char.charCodeAt(0) + seed, 0);
@@ -247,11 +256,16 @@ export default function RocketPage() {
     const bots = shuffledNames.slice(0, botCount).map((name, idx) => {
       const botSeed = seed + idx;
       const bet = (botSeed % 500) + 50;
+      // Assign an "intelligence" factor: a target multiplier where they will cash out
+      // Some bots are conservative, some are greedy.
+      const targetMult = 1.1 + (Math.random() * Math.random() * 15); 
+      
       return {
         user: name,
         bet: bet,
         avatarUrl: `https://picsum.photos/seed/${name}/40/40`,
-        cashedOut: false
+        cashedOut: false,
+        targetMultiplier: targetMult
       };
     });
 
@@ -262,12 +276,13 @@ export default function RocketPage() {
     if (gameData?.status === 'flying') {
       const interval = setInterval(() => {
         setActiveBets(prev => prev.map(p => {
-          if (!p.cashedOut && Math.random() < 0.1) {
-            return { ...p, cashedOut: true, cashedOutAt: multiplier };
+          if (!p.cashedOut && multiplier >= (p.targetMultiplier || 1.5)) {
+            // Only cash out if the multiplier hasn't crashed yet (redundant but safe)
+            return { ...p, cashedOut: true, cashedOutAt: Number(multiplier.toFixed(2)) };
           }
           return p;
         }));
-      }, 1000);
+      }, 200);
       return () => clearInterval(interval);
     }
   }, [gameData?.status, multiplier]);
@@ -282,46 +297,45 @@ export default function RocketPage() {
   const renderButton = () => {
     if (!gameData) return <Button disabled className="w-full h-16 rounded-2xl bg-primary/20">INITIALIZING...</Button>;
 
-    if (gameData.status === 'waiting' || gameData.status === 'crashed') {
-      if (isUserInRound) {
-        return (
-          <Button 
-            onClick={handleCancelBet}
-            className="w-full h-16 bg-red-500/20 hover:bg-red-500/30 text-red-500 font-black text-xl rounded-2xl border border-red-500/30"
-          >
-            CANCEL BET
-          </Button>
-        );
+    // Case 1: User has an active bet in the CURRENT flying round
+    if (isUserInCurrentRound && gameData.status === 'flying') {
+      if (hasCashedOut) {
+        return <Button disabled className="w-full h-16 rounded-2xl bg-success/20 text-success font-black text-xl">CASHED OUT</Button>;
       }
       return (
         <Button 
-          onClick={handlePlaceBet}
-          disabled={balance < betAmount}
-          className="w-full h-16 bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xl rounded-2xl shadow-xl"
+          onClick={handleUserCashOut}
+          className="w-full h-16 bg-success hover:bg-success/90 text-background font-black text-xl rounded-2xl shadow-[0_0_30px_rgba(115,255,115,0.4)] animate-pulse"
         >
-          PLACE BET
+          CASH OUT
         </Button>
       );
     }
 
-    if (gameData.status === 'flying') {
-      if (isUserInRound) {
-        if (hasCashedOut) {
-          return <Button disabled className="w-full h-16 rounded-2xl bg-success/20 text-success font-black text-xl">CASHED OUT</Button>;
-        }
-        return (
-          <Button 
-            onClick={handleUserCashOut}
-            className="w-full h-16 bg-success hover:bg-success/90 text-background font-black text-xl rounded-2xl shadow-[0_0_30px_rgba(115,255,115,0.4)] animate-pulse"
-          >
-            CASH OUT
-          </Button>
-        );
-      }
-      return <Button disabled className="w-full h-16 rounded-2xl bg-white/5 text-muted-foreground font-black text-xl uppercase border border-white/10">Game Started</Button>;
+    // Case 2: User has a bet placed but round is either waiting or it's queued for next
+    if (isUserInCurrentRound || isQueued) {
+      // If we are in waiting phase and bet is for current, we can cancel.
+      // If we are in flying phase and bet is queued for next, we can cancel.
+      return (
+        <Button 
+          onClick={handleCancelBet}
+          className="w-full h-16 bg-red-500/20 hover:bg-red-500/30 text-red-500 font-black text-xl rounded-2xl border border-red-500/30"
+        >
+          CANCEL BET
+        </Button>
+      );
     }
 
-    return null;
+    // Case 3: Default "Place Bet" (Available in all statuses if not betting)
+    return (
+      <Button 
+        onClick={handlePlaceBet}
+        disabled={balance < betAmount}
+        className="w-full h-16 bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xl rounded-2xl shadow-xl"
+      >
+        {gameData.status === 'flying' ? 'BET NEXT ROUND' : 'PLACE BET'}
+      </Button>
+    );
   };
 
   return (
@@ -350,7 +364,7 @@ export default function RocketPage() {
                     value={betAmount} 
                     onChange={e => setBetAmount(Number(e.target.value))} 
                     className="bg-black/20 border-white/10 h-14 font-black text-lg pl-12 rounded-2xl" 
-                    disabled={isUserInRound || (gameData?.status === 'flying')} 
+                    disabled={isUserInCurrentRound || isQueued} 
                   />
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-primary font-black text-lg">R$</span>
                 </div>
@@ -364,22 +378,22 @@ export default function RocketPage() {
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Active Players</p>
                 <div className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 rounded-full border border-primary/20">
                   <Users className="w-3 h-3 text-primary" />
-                  <span className="text-[11px] font-black text-primary">{activeBets.length + (isUserInRound ? 1 : 0)}</span>
+                  <span className="text-[11px] font-black text-primary">{activeBets.length + (isUserInCurrentRound ? 1 : 0)}</span>
                 </div>
               </div>
               <div className="space-y-2 max-h-[250px] sm:max-h-[300px] overflow-y-auto no-scrollbar pr-2">
-                {isUserInRound && (
-                  <div className={`flex items-center justify-between p-3 rounded-2xl border ${hasCashedOut ? 'bg-success/10 border-success/40 shadow-[0_0_10px_rgba(115,255,115,0.2)]' : (gameData?.status === 'crashed' ? 'bg-red-500/10 border-red-500/40' : 'bg-primary/10 border-primary/40 shadow-[0_0_15px_rgba(200,153,255,0.2)]')}`}>
+                {(isUserInCurrentRound || isQueued) && (
+                  <div className={`flex items-center justify-between p-3 rounded-2xl border ${hasCashedOut ? 'bg-success/10 border-success/40 shadow-[0_0_10px_rgba(115,255,115,0.2)]' : (isQueued ? 'bg-amber-500/10 border-amber-500/30' : (gameData?.status === 'crashed' ? 'bg-red-500/10 border-red-500/40' : 'bg-primary/10 border-primary/40 shadow-[0_0_15px_rgba(200,153,255,0.2)]'))}`}>
                     <div className="flex items-center gap-3">
                       <img src={userProfile?.avatarUrl} className="w-7 h-7 rounded-lg object-cover" alt="Avatar" />
                       <span className="text-[11px] font-bold text-white">YOU</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold text-white/60">R$ {userProfile?.activeRocketBet?.amount}</span>
+                      <span className="text-[10px] font-bold text-white/60">R$ {userBetInfo?.amount}</span>
                       {hasCashedOut ? (
-                        <span className="text-[10px] font-black text-success glow-sm">{userProfile?.activeRocketBet?.cashedOutAt?.toFixed(2)}x</span>
+                        <span className="text-[10px] font-black text-success glow-sm">{userBetInfo?.cashedOutAt?.toFixed(2)}x</span>
                       ) : (
-                        gameData?.status === 'crashed' && <span className="text-[10px] font-black text-red-500">LOST</span>
+                        isQueued ? <span className="text-[8px] font-black text-amber-500 uppercase">Queued</span> : (gameData?.status === 'crashed' && <span className="text-[10px] font-black text-red-500">LOST</span>)
                       )}
                     </div>
                   </div>
@@ -480,3 +494,4 @@ export default function RocketPage() {
     </div>
   );
 }
+

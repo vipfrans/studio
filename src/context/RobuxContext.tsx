@@ -110,6 +110,7 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const { data: profile, loading } = useDoc(userDocRef);
 
+  // Unified Rocket Observer
   useEffect(() => {
     if (!db || !userDocRef || !profile?.activeRocketBet) return;
 
@@ -118,6 +119,13 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const gameData = snap.data();
       if (!gameData) return;
 
+      // Handle transition to new round for queued bets
+      if (gameData.status === 'waiting' && profile.activeRocketBet.roundId === 'queued') {
+        updateDoc(userDocRef, { 'activeRocketBet.roundId': gameData.roundId });
+        return;
+      }
+
+      // Record loss if crashed and user was in that round without cashing out
       if (gameData.status === 'crashed' && 
           profile.activeRocketBet.roundId === gameData.roundId && 
           !profile.activeRocketBet.cashedOut) {
@@ -126,7 +134,10 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateDoc(userDocRef, { activeRocketBet: null });
       }
       
-      if (gameData.status === 'waiting' && profile.activeRocketBet.roundId !== gameData.roundId) {
+      // Clear bet if the round we were in is now long gone (waiting for new one)
+      if (gameData.status === 'waiting' && 
+          profile.activeRocketBet.roundId !== gameData.roundId && 
+          profile.activeRocketBet.roundId !== 'queued') {
          updateDoc(userDocRef, { activeRocketBet: null });
       }
     });
@@ -189,7 +200,7 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, [db, userDocRef]);
 
-  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isAdminOpen, setIsOpen] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
 
   useEffect(() => {
@@ -268,7 +279,7 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await updateDoc(settingsRef, data);
   };
 
-  const toggleAdmin = () => setIsAdminOpen(prev => !prev);
+  const toggleAdmin = () => setIsOpen(prev => !prev);
   const triggerImmediateCrash = () => setForceCrashTrigger(Date.now());
 
   const balance = profile?.balance ?? 0;
@@ -311,3 +322,4 @@ export const useRobux = () => {
   if (!context) throw new Error('useRobux must be used within RobuxProvider');
   return context;
 };
+
