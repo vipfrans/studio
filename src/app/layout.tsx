@@ -7,6 +7,7 @@ import { RobuxProvider } from '@/context/RobuxContext';
 import { Navbar } from '@/components/layout/Navbar';
 import { LastWinnings } from '@/components/layout/LastWinnings';
 import { SnowParticles } from '@/components/effects/SnowParticles';
+import { BackgroundMusic } from '@/components/effects/BackgroundMusic';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider, initializeFirebase } from '@/firebase';
 import { GlobalAnnouncement } from '@/components/GlobalAnnouncement';
@@ -38,6 +39,7 @@ export default function RootLayout({
           <RobuxProvider>
             {!IS_MAINTENANCE && (
               <>
+                <BackgroundMusic />
                 <SnowParticles />
                 <Navbar />
                 <main className="flex-1 relative z-10 w-full max-w-7xl mx-auto">
