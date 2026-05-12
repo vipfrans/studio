@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 // Sound Assets
 const SOUNDS = {
   CLICK: "https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3",
-  WIN: "https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3",
+  WIN: "https://cdn.discordapp.com/attachments/1221933758492442756/1503601417271906354/dragon-studio-register-cha-ching-376896.mp3?ex=6a03f171&is=6a029ff1&hm=9291113652cf37a4f315069dfc3af06dc961bd335a3497d2694a36d0a400a1d8&",
   LOSE: "https://assets.mixkit.co/active_storage/sfx/123/123-preview.mp3"
 };
 
