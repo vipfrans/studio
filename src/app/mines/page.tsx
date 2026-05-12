@@ -11,6 +11,20 @@ import { Input } from '@/components/ui/input';
 
 const GRID_SIZE = 25;
 
+// Sound Assets
+const SOUNDS = {
+  CLICK: "https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3",
+  DIAMOND: "https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3",
+  BOMB: "https://assets.mixkit.co/active_storage/sfx/123/123-preview.mp3",
+  CASHOUT: "https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3"
+};
+
+const playSound = (url: string, volume = 0.5) => {
+  const audio = new Audio(url);
+  audio.volume = volume;
+  audio.play().catch(() => {});
+};
+
 export default function MinesPage() {
   const { balance, removeRobux, addRobux, recordLoss } = useRobux();
   const [betAmount, setBetAmount] = useState(100);
@@ -30,6 +44,7 @@ export default function MinesPage() {
     setIsGameOver(false);
     
     removeRobux(betAmount);
+    playSound(SOUNDS.CLICK);
     
     const newMines: number[] = [];
     while (newMines.length < bombCount) {
@@ -45,11 +60,13 @@ export default function MinesPage() {
     if (!isPlaying || revealed.includes(index) || isGameOver) return;
 
     if (mines.includes(index)) {
+      playSound(SOUNDS.BOMB);
       setIsGameOver(true);
       setIsPlaying(false);
       setRevealed(prev => Array.from(new Set([...prev, ...mines])));
       recordLoss(betAmount, 'Mines');
     } else {
+      playSound(SOUNDS.DIAMOND);
       const nextRevealed = [...revealed, index];
       setRevealed(nextRevealed);
       if (nextRevealed.length === GRID_SIZE - bombCount) {
@@ -61,6 +78,7 @@ export default function MinesPage() {
   const cashOut = (count: number) => {
     if (!isPlaying || isGameOver || count === 0) return;
     
+    playSound(SOUNDS.CASHOUT);
     const multiplier = 1 + (count * 0.2 * (bombCount / 2));
     const winAmount = Math.floor(betAmount * multiplier);
     
@@ -76,6 +94,7 @@ export default function MinesPage() {
     setMines([]);
     setRevealed([]);
     setIsPlaying(false);
+    playSound(SOUNDS.CLICK);
   };
 
   return (

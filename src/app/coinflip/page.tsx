@@ -9,6 +9,19 @@ import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
+// Sound Assets
+const SOUNDS = {
+  CLICK: "https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3",
+  WIN: "https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3",
+  LOSE: "https://assets.mixkit.co/active_storage/sfx/123/123-preview.mp3"
+};
+
+const playSound = (url: string, volume = 0.5) => {
+  const audio = new Audio(url);
+  audio.volume = volume;
+  audio.play().catch(() => {});
+};
+
 export default function CoinflipPage() {
   const { balance, removeRobux, addRobux, recordLoss } = useRobux();
   const [betAmount, setBetAmount] = useState(100);
@@ -19,6 +32,7 @@ export default function CoinflipPage() {
   const startFlip = () => {
     if (balance < betAmount || isFlipping) return;
     removeRobux(betAmount);
+    playSound(SOUNDS.CLICK);
     
     setIsFlipping(true);
     setWinner(null);
@@ -29,8 +43,10 @@ export default function CoinflipPage() {
       setIsFlipping(false);
       
       if (result === side) {
+        playSound(SOUNDS.WIN);
         addRobux(betAmount * 1.95, 'Coinflip');
       } else {
+        playSound(SOUNDS.LOSE);
         recordLoss(betAmount, 'Coinflip');
       }
     }, 2000);
@@ -49,8 +65,7 @@ export default function CoinflipPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
-        {/* User Side */}
-        <div className={`glass p-8 rounded-[40px] flex flex-col items-center gap-4 transition-all ${side === 'A' ? 'border-primary ring-2 ring-primary/20' : 'border-white/5 opacity-50'}`} onClick={() => !isFlipping && setSide('A')}>
+        <div className={`glass p-8 rounded-[40px] flex flex-col items-center gap-4 transition-all cursor-pointer ${side === 'A' ? 'border-primary ring-2 ring-primary/20' : 'border-white/5 opacity-50'}`} onClick={() => !isFlipping && setSide('A')}>
           <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center border-2 border-primary">
             <span className="text-4xl font-black text-primary">A</span>
           </div>
@@ -60,7 +75,6 @@ export default function CoinflipPage() {
           </div>
         </div>
 
-        {/* Flip Area */}
         <div className="flex flex-col items-center gap-8">
           <div className="relative w-40 h-40">
             <motion.div
@@ -71,11 +85,9 @@ export default function CoinflipPage() {
               transition={{ duration: 2, ease: "easeInOut" }}
               className="w-full h-full relative [transform-style:preserve-3d]"
             >
-              {/* Front Side */}
               <div className="absolute inset-0 w-full h-full glass-purple rounded-full flex items-center justify-center border-4 border-primary [backface-visibility:hidden]">
                 <span className="text-6xl font-black text-primary">A</span>
               </div>
-              {/* Back Side */}
               <div className="absolute inset-0 w-full h-full bg-accent/20 backdrop-blur-xl rounded-full flex items-center justify-center border-4 border-accent [transform:rotateY(180deg)] [backface-visibility:hidden]">
                 <span className="text-6xl font-black text-accent">B</span>
               </div>
@@ -103,8 +115,7 @@ export default function CoinflipPage() {
           </div>
         </div>
 
-        {/* Opponent Side */}
-        <div className={`glass p-8 rounded-[40px] flex flex-col items-center gap-4 transition-all ${side === 'B' ? 'border-accent ring-2 ring-accent/20' : 'border-white/5 opacity-50'}`} onClick={() => !isFlipping && setSide('B')}>
+        <div className={`glass p-8 rounded-[40px] flex flex-col items-center gap-4 transition-all cursor-pointer ${side === 'B' ? 'border-accent ring-2 ring-accent/20' : 'border-white/5 opacity-50'}`} onClick={() => !isFlipping && setSide('B')}>
           <div className="w-24 h-24 rounded-full bg-accent/20 flex items-center justify-center border-2 border-accent">
             <span className="text-4xl font-black text-accent">B</span>
           </div>

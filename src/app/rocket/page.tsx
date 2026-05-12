@@ -11,6 +11,20 @@ import { Input } from '@/components/ui/input';
 
 const REALISTIC_NAMES = ['Frosty_Blox', 'Lumine_Dev', 'VoidX_Gamer', 'Ghost_Rider', 'Stellar_YT', 'Valk_Queen', 'Neon_Player', 'Rex_Bet', 'Kone_Pro', 'Silent_Ace', 'Storm_Rider', 'Pixel_Warrior', 'Cyber_Punk', 'Robo_Gamer', 'Elite_King', 'Vortex', 'Pulse', 'Shadow', 'Azure', 'Cinder', 'Mystic', 'Blaze', 'Glitch', 'Static'];
 
+// Sound Assets
+const SOUNDS = {
+  TICK: "https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3",
+  START: "https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3",
+  WIN: "https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3",
+  CRASH: "https://assets.mixkit.co/active_storage/sfx/123/123-preview.mp3"
+};
+
+const playSound = (url: string, volume = 0.5) => {
+  const audio = new Audio(url);
+  audio.volume = volume;
+  audio.play().catch(() => {});
+};
+
 interface PlayerBet {
   user: string;
   bet: number;
@@ -36,7 +50,6 @@ const GlowingRocket = ({ multiplier, isFlying, isCrashed }: { multiplier: number
       }}
       className="absolute z-0 flex flex-col items-center pointer-events-none"
     >
-      {/* Rocket Body with 3D-like effects */}
       <div className="relative">
         <div className="absolute inset-0 bg-primary blur-[40px] opacity-40 animate-pulse" />
         <svg width="120" height="180" viewBox="0 0 120 180" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-[0_0_30px_rgba(200,153,255,0.6)]">
@@ -46,22 +59,14 @@ const GlowingRocket = ({ multiplier, isFlying, isCrashed }: { multiplier: number
               <stop offset="50%" stopColor="#C899FF" />
               <stop offset="100%" stopColor="#A855F7" />
             </linearGradient>
-            <filter id="innerGlow">
-              <feGaussianBlur stdDeviation="2" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="out" />
-            </filter>
           </defs>
-          {/* Main Body */}
           <path d="M60 10C60 10 30 50 30 100C30 140 60 160 60 160C60 160 90 140 90 100C90 50 60 10 60 10Z" fill="url(#rocketBody)" stroke="#E9D5FF" strokeWidth="2" />
-          {/* Fins */}
           <path d="M30 120L10 155C10 155 30 160 40 145" fill="#9333EA" stroke="#E9D5FF" strokeWidth="1" />
           <path d="M90 120L110 155C110 155 90 160 80 145" fill="#9333EA" stroke="#E9D5FF" strokeWidth="1" />
-          {/* Window */}
           <circle cx="60" cy="70" r="12" fill="#1E1B4B" stroke="#E9D5FF" strokeWidth="2" />
           <circle cx="56" cy="66" r="4" fill="white" fillOpacity="0.4" />
         </svg>
 
-        {/* Engine Fire */}
         {isFlying && (
           <motion.div 
             animate={{ 
@@ -111,6 +116,13 @@ export default function RocketPage() {
     return () => stopAllIntervals();
   }, []);
 
+  // Countdown Sounds
+  useEffect(() => {
+    if (gameState === 'waiting' && countdown > 0) {
+      playSound(SOUNDS.TICK, 0.3);
+    }
+  }, [countdown, gameState]);
+
   const initWaitingPhase = () => {
     stopAllIntervals();
     setGameState('waiting');
@@ -150,6 +162,7 @@ export default function RocketPage() {
   const startFlying = () => {
     stopAllIntervals();
     setGameState('flying');
+    playSound(SOUNDS.START);
     const currentLimit = nextCrashMultiplier;
 
     gameIntervalRef.current = setInterval(() => {
@@ -180,6 +193,7 @@ export default function RocketPage() {
   const crashGame = () => {
     stopAllIntervals();
     setGameState('crashed');
+    playSound(SOUNDS.CRASH);
     setNextCrashMultiplier(null);
     const finalMult = Number(multiplierRef.current.toFixed(2));
     setHistory(prev => [finalMult, ...prev].slice(0, 10));
@@ -195,6 +209,7 @@ export default function RocketPage() {
     if (gameState !== 'waiting' || balance < betAmount || isUserInRound || !userProfile) return;
     await removeRobux(betAmount);
     setIsUserInRound(true);
+    playSound(SOUNDS.TICK);
     setActiveBets(prev => [{
       user: userProfile.username,
       bet: betAmount,
@@ -207,6 +222,7 @@ export default function RocketPage() {
   const handleUserCashOut = async () => {
     if (gameState !== 'flying' || hasCashedOut || !isUserInRound) return;
     const win = Math.floor(betAmount * multiplier);
+    playSound(SOUNDS.WIN);
     await addRobux(win, 'Rocket');
     setHasCashedOut(true);
     setActiveBets(prev => prev.map(p => {
@@ -315,13 +331,10 @@ export default function RocketPage() {
           </div>
           
           <div className="glass-purple h-[550px] rounded-[48px] relative flex items-center justify-center border-2 border-primary/20 overflow-hidden shadow-[0_0_100px_rgba(200,153,255,0.1)]">
-            {/* Background Decorative Grid */}
             <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '40px 40px' }} />
             
-            {/* The 3D Glowing Rocket */}
             <GlowingRocket multiplier={multiplier} isFlying={gameState === 'flying'} isCrashed={gameState === 'crashed'} />
 
-            {/* The Multiplier Number */}
             <motion.div 
               key={multiplier}
               initial={{ scale: 0.9, opacity: 0 }}
@@ -385,7 +398,6 @@ export default function RocketPage() {
               )}
             </AnimatePresence>
 
-            {/* Flying Stars/Particles Effect */}
             {gameState === 'flying' && (
               <div className="absolute inset-0 pointer-events-none">
                 {Array.from({ length: 25 }).map((_, i) => (
