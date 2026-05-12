@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useRef, memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Rocket as RocketIcon, ArrowLeft, Users, Flame } from 'lucide-react';
+import { Rocket as RocketIcon, ArrowLeft, Users, Flame, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
@@ -114,9 +114,9 @@ export default function RocketPage() {
       const currentSeconds = elapsed / 1000;
       const currentCalcMult = Math.pow(1.065, currentSeconds);
       
-      // If multiplier is insane (> 1000x) or status is crashed for > 10s, reset.
       if ((gameData.status === 'flying' && currentCalcMult > 1000) || 
-          (gameData.status === 'crashed' && elapsed > 10000)) {
+          (gameData.status === 'crashed' && elapsed > 8000) ||
+          (!gameData.status)) {
         try {
           const crashPoint = 1 + (Math.random() * Math.random() * 12);
           await updateDoc(gameDocRef, {
@@ -141,7 +141,6 @@ export default function RocketPage() {
         
         setMultiplier(roundedMult);
 
-        // Auto-Crash if reached limit
         if (roundedMult >= (gameData.crashMultiplier || 1.1)) {
           handleCrashSync(roundedMult);
           clearInterval(interval);
@@ -376,31 +375,35 @@ export default function RocketPage() {
               </div>
               <div className="space-y-2 max-h-[300px] overflow-y-auto no-scrollbar pr-2">
                 {isUserInRound && (
-                  <div className={`flex items-center justify-between p-3 rounded-2xl border bg-primary/10 border-primary/40 shadow-[0_0_15px_rgba(200,153,255,0.2)]`}>
+                  <div className={`flex items-center justify-between p-3 rounded-2xl border ${hasCashedOut ? 'bg-success/10 border-success/40' : (gameData?.status === 'crashed' ? 'bg-red-500/10 border-red-500/40' : 'bg-primary/10 border-primary/40 shadow-[0_0_15px_rgba(200,153,255,0.2)]')}`}>
                     <div className="flex items-center gap-3">
                       <img src={userProfile?.avatarUrl} className="w-7 h-7 rounded-lg object-cover" alt="Avatar" />
                       <span className="text-[11px] font-bold text-white">YOU</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-bold text-white/60">R$ {userProfile?.activeRocketBet?.amount}</span>
-                      {hasCashedOut && (
-                        <span className="text-[10px] font-black text-success">{userProfile?.activeRocketBet?.cashedOutAt?.toFixed(2)}x</span>
+                      {hasCashedOut ? (
+                        <span className="text-[10px] font-black text-success glow-sm">{userProfile?.activeRocketBet?.cashedOutAt?.toFixed(2)}x</span>
+                      ) : (
+                        gameData?.status === 'crashed' && <span className="text-[10px] font-black text-red-500">LOST</span>
                       )}
                     </div>
                   </div>
                 )}
                 {activeBets.map((player, i) => (
                   <div key={i} className={`flex items-center justify-between p-3 rounded-2xl border ${
-                    player.cashedOut ? 'bg-success/5 border-success/20' : 'bg-white/5 border-white/5'
+                    player.cashedOut ? 'bg-success/5 border-success/20' : (gameData?.status === 'crashed' ? 'bg-red-500/5 border-red-500/20' : 'bg-white/5 border-white/5')
                   }`}>
                     <div className="flex items-center gap-3">
                       <img src={player.avatarUrl} className="w-7 h-7 rounded-lg object-cover" alt="Avatar" />
-                      <span className={`text-[11px] font-bold truncate max-w-[80px] ${player.cashedOut ? 'text-success' : 'text-white'}`}>{player.user}</span>
+                      <span className={`text-[11px] font-bold truncate max-w-[80px] ${player.cashedOut ? 'text-success' : (gameData?.status === 'crashed' ? 'text-red-500' : 'text-white')}`}>{player.user}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-bold text-white/40">R$ {player.bet}</span>
-                      {player.cashedOut && (
+                      {player.cashedOut ? (
                         <span className="text-[10px] font-black text-success">{player.cashedOutAt?.toFixed(2)}x</span>
+                      ) : (
+                        gameData?.status === 'crashed' && <span className="text-[10px] font-black text-red-500">LOST</span>
                       )}
                     </div>
                   </div>
