@@ -41,14 +41,16 @@
     },
     "InviteKey": {
       "title": "Invite Key",
-      "description": "مفتاح دعوة للسماح بالتسجيل.",
+      "description": "مفتاح دعوة للسماح بالتسجيل مع دعم لعدد الاستخدامات.",
       "type": "object",
       "properties": {
         "key": { "type": "string" },
         "isUsed": { "type": "boolean" },
-        "usedBy": { "type": "string" }
+        "usedBy": { "type": "string" },
+        "maxUses": { "type": "number" },
+        "currentUses": { "type": "number" }
       },
-      "required": ["key", "isUsed"]
+      "required": ["key"]
     },
     "ChatMessage": {
       "title": "Chat Message",

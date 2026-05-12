@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { User, Lock, Key, ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth, useFirestore, useUser } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, collection, query, where, getDocs, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, collection, query, where, getDocs, getDoc, serverTimestamp, updateDoc, increment } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -114,19 +114,35 @@ export default function AuthPage() {
 
     setLoading(true);
     try {
-      // 1. Check Invite Key
-      const isValidHardcoded = HARDCODED_INVITE_KEYS.includes(inviteKey);
       const keyRef = doc(db, 'invite_keys', inviteKey);
       const keySnap = await getDoc(keyRef);
-      const isValidDB = keySnap.exists() && !keySnap.data().isUsed;
+      
+      let canUse = false;
+      const isHardcoded = HARDCODED_INVITE_KEYS.includes(inviteKey);
 
-      if (!isValidHardcoded && !isValidDB) {
-        toast({ variant: "destructive", title: "Invalid Key", description: "This 12-character invite key is invalid." });
+      if (isHardcoded) {
+        // Hardcoded keys are single-use. Check if used in DB.
+        if (!keySnap.exists() || !keySnap.data().isUsed) {
+          canUse = true;
+        }
+      } else if (keySnap.exists()) {
+        const data = keySnap.data();
+        if (data.maxUses) {
+          if ((data.currentUses || 0) < data.maxUses) {
+            canUse = true;
+          }
+        } else if (!data.isUsed) {
+          canUse = true;
+        }
+      }
+
+      if (!canUse) {
+        toast({ variant: "destructive", title: "Invalid/Used Key", description: "This invite key is invalid or has reached its usage limit." });
         setLoading(false);
         return;
       }
 
-      // 2. Check Duplicate Username (Strict)
+      // Check Duplicate Username
       const q = query(collection(db, 'users'), where('usernameLowercase', '==', username.toLowerCase()));
       const userSnap = await getDocs(q);
       
@@ -136,7 +152,7 @@ export default function AuthPage() {
         return;
       }
 
-      // 3. Create Account
+      // Create Account
       const internalEmail = `${username.toLowerCase()}_${Date.now()}@koronebet.local`;
       const userCred = await createUserWithEmailAndPassword(auth, internalEmail, password);
       
@@ -162,8 +178,16 @@ export default function AuthPage() {
         createdAt: serverTimestamp()
       });
 
-      if (isValidDB) {
-        await setDoc(keyRef, { isUsed: true, usedBy: username, usedAt: serverTimestamp() }, { merge: true });
+      // Mark Key as Used
+      if (isHardcoded) {
+        await setDoc(keyRef, { isUsed: true, usedBy: username, usedAt: serverTimestamp(), key: inviteKey }, { merge: true });
+      } else {
+        const currentData = keySnap.data();
+        const newUses = (currentData?.currentUses || 0) + 1;
+        await updateDoc(keyRef, {
+          currentUses: newUses,
+          isUsed: newUses >= (currentData?.maxUses || 1)
+        });
       }
 
       toast({ title: "Account Created!", description: "Welcome to KoroneBet!" });

@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Sparkles, Rocket, Megaphone, UserPlus, Users, Coins } from 'lucide-react';
+import { X, Sparkles, Rocket, Megaphone, UserPlus, Users, Key, Plus } from 'lucide-react';
 import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,11 @@ export const AdminPanel = () => {
   const [targetUsername, setTargetUsername] = useState('');
   const [giftAmount, setGiftAmount] = useState('');
   const [gifting, setGifting] = useState(false);
+
+  // Invite Key states
+  const [newKeyText, setNewKeyText] = useState('');
+  const [maxUses, setMaxUses] = useState('1');
+  const [creatingKey, setCreatingKey] = useState(false);
 
   if (!userProfile || (userProfile.username?.toLowerCase() !== 'dew' && userProfile.role !== 'OWNER')) return null;
 
@@ -46,6 +51,28 @@ export const AdminPanel = () => {
       console.error(e);
     } finally {
       setGifting(false);
+    }
+  };
+
+  const handleCreateInviteKey = async () => {
+    if (!newKeyText || !maxUses || !db) return;
+    setCreatingKey(true);
+    try {
+      const keyRef = doc(db, 'invite_keys', newKeyText.toUpperCase());
+      await setDoc(keyRef, {
+        key: newKeyText.toUpperCase(),
+        maxUses: parseInt(maxUses),
+        currentUses: 0,
+        isUsed: false,
+        createdAt: serverTimestamp()
+      });
+      alert(`Key ${newKeyText.toUpperCase()} created with ${maxUses} uses!`);
+      setNewKeyText('');
+      setMaxUses('1');
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setCreatingKey(false);
     }
   };
 
@@ -100,7 +127,7 @@ export const AdminPanel = () => {
               <Input 
                 type="number" 
                 placeholder="Ex: 3142" 
-                value={simSettings?.onlinePlayers || 0} 
+                value={simSettings?.onlinePlayers ?? 0} 
                 onChange={handleOnlinePlayersChange}
                 className="h-9 text-xs font-bold bg-black/20"
               />
@@ -148,7 +175,7 @@ export const AdminPanel = () => {
               <Input 
                 type="number" 
                 placeholder="Min" 
-                value={simSettings?.minRocketBots || 0} 
+                value={simSettings?.minRocketBots ?? 0} 
                 onChange={e => {
                   const val = parseInt(e.target.value);
                   updateSimSettings({ minRocketBots: isNaN(val) ? 0 : val });
@@ -158,13 +185,32 @@ export const AdminPanel = () => {
               <Input 
                 type="number" 
                 placeholder="Max" 
-                value={simSettings?.maxRocketBots || 0} 
+                value={simSettings?.maxRocketBots ?? 0} 
                 onChange={e => {
                   const val = parseInt(e.target.value);
                   updateSimSettings({ maxRocketBots: isNaN(val) ? 0 : val });
                 }}
                 className="h-8 text-[10px] bg-black/10"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Create Invite Key */}
+        <div className="pt-4 border-t border-white/10">
+          <label className="text-[10px] font-black text-amber-500 uppercase mb-3 flex items-center gap-2">
+            <Key className="w-3 h-3" /> Invite Key Manager
+          </label>
+          <div className="space-y-2">
+            <Input placeholder="Key (e.g. SECRET123)" value={newKeyText} onChange={e => setNewKeyText(e.target.value)} className="h-8 text-xs bg-black/10" />
+            <div className="flex gap-2">
+              <div className="flex-1 space-y-1">
+                <p className="text-[7px] text-muted-foreground uppercase font-black">Max Uses</p>
+                <Input type="number" placeholder="Uses" value={maxUses} onChange={e => setMaxUses(e.target.value)} className="h-8 text-xs bg-black/10" />
+              </div>
+              <Button onClick={handleCreateInviteKey} disabled={creatingKey} className="self-end h-8 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold px-4">
+                {creatingKey ? '...' : <Plus className="w-3 h-3" />}
+              </Button>
             </div>
           </div>
         </div>
