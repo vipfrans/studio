@@ -91,11 +91,17 @@ export default function RocketPage() {
   const startFlying = () => {
     stopAllIntervals();
     setGameState('flying');
+
+    // Capture the limit from context at the moment of takeoff
+    const currentLimit = nextCrashMultiplier;
+
     gameIntervalRef.current = setInterval(() => {
+      // Calculation of growth
       multiplierRef.current += 0.01 + (multiplierRef.current * 0.005);
       const currentMult = Number(multiplierRef.current.toFixed(2));
       setMultiplier(currentMult);
 
+      // Bot cashouts
       setActiveBets(prev => prev.map(p => {
         if (p.avatarUrl?.includes('picsum') && !p.cashedOut && currentMult >= p.targetMultiplier) {
           return { ...p, cashedOut: true, cashedOutAt: currentMult };
@@ -103,16 +109,18 @@ export default function RocketPage() {
         return p;
       }));
 
-      // Check if Admin set a limit
-      if (nextCrashMultiplier !== null && currentMult >= nextCrashMultiplier) {
+      // 1. Mandatory Crash (Admin Set)
+      if (currentLimit !== null && currentMult >= currentLimit) {
         crashGame();
         return;
       }
 
-      // Natural crash logic - reduced if an admin limit is set to avoid random premature crashes
-      const randomThreshold = nextCrashMultiplier ? 0.002 : 0.005;
-      if (Math.random() < randomThreshold + (multiplierRef.current * 0.003)) {
-        crashGame();
+      // 2. Natural Crash (Random)
+      // If admin limit is set, we don't allow natural crash before it to ensure "Set at" works
+      if (currentLimit === null) {
+        if (Math.random() < 0.005 + (multiplierRef.current * 0.003)) {
+          crashGame();
+        }
       }
     }, 100);
   };
@@ -120,7 +128,7 @@ export default function RocketPage() {
   const crashGame = () => {
     stopAllIntervals();
     setGameState('crashed');
-    setNextCrashMultiplier(null); // Reset the admin multiplier after crash
+    setNextCrashMultiplier(null); // Reset the admin multiplier in context
     const finalMult = Number(multiplierRef.current.toFixed(2));
     setHistory(prev => [finalMult, ...prev].slice(0, 10));
 

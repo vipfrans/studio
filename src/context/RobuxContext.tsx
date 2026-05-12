@@ -56,6 +56,8 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [lang, setLang] = useState<'EN' | 'AR'>('EN');
   const [simSettings, setSimSettings] = useState<SimSettings>(DEFAULT_SIM_SETTINGS);
   const [realOnlineCount, setRealOnlineCount] = useState(1);
+  const [nextCrashMultiplier, setNextCrashMultiplier] = useState<number | null>(null);
+  const [forceCrashTrigger, setForceCrashTrigger] = useState(0);
   const lastProcessedTransferRef = useRef<any>(null);
 
   useEffect(() => {
@@ -65,7 +67,6 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => unsubscribe();
   }, [auth]);
 
-  // Sync Global Sim Settings
   useEffect(() => {
     if (!db) return;
     const settingsRef = doc(db, 'settings', 'simulation');
@@ -93,7 +94,6 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const { data: profile, loading } = useDoc(userDocRef);
 
-  // Transfer Notification Listener
   useEffect(() => {
     if (profile?.lastTransfer && profile.lastTransfer.timestamp) {
       const transfer = profile.lastTransfer;
@@ -102,7 +102,6 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (!lastProcessedTransferRef.current || ts > lastProcessedTransferRef.current) {
         lastProcessedTransferRef.current = ts;
         
-        // Show the professional transfer toast
         toast({
           title: (
             <div className="flex items-center gap-2">
@@ -126,20 +125,17 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [profile?.lastTransfer, toast]);
 
-  // Real-time Activity Tracking & Online Count
   useEffect(() => {
     if (!db) return;
 
-    // 1. Update own activity
     const updateActivity = () => {
       if (userDocRef) {
         updateDoc(userDocRef, { lastSeen: serverTimestamp() });
       }
     };
     updateActivity();
-    const activityInterval = setInterval(updateActivity, 120000); // 2 mins
+    const activityInterval = setInterval(updateActivity, 120000);
 
-    // 2. Listen for real people online (active in last 5 mins)
     const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000);
     const onlineQuery = query(collection(db, 'users'), where('lastSeen', '>=', Timestamp.fromDate(fiveMinsAgo)));
     
@@ -155,8 +151,6 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
-  const [nextCrashMultiplier, setNextCrashMultiplier] = useState<number | null>(null);
-  const [forceCrashTrigger, setForceCrashTrigger] = useState(0);
 
   useEffect(() => {
     if (profile) {
