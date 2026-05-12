@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth, useFirestore, useDoc } from '@/firebase';
-import { doc, updateDoc, increment, collection, addDoc, serverTimestamp, arrayUnion, onSnapshot, setDoc, query, where, Timestamp } from 'firebase/firestore';
+import { doc, updateDoc, increment, collection, addDoc, serverTimestamp, arrayUnion, onSnapshot, setDoc, query, where, Timestamp, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle2 } from 'lucide-react';
 
@@ -67,24 +67,43 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => unsubscribe();
   }, [auth]);
 
+  // Ensure settings exist in Firestore
   useEffect(() => {
     if (!db) return;
-    const settingsRef = doc(db, 'settings', 'simulation');
-    const unsub = onSnapshot(settingsRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setSimSettings({
-          onlinePlayers: data.onlinePlayers ?? DEFAULT_SIM_SETTINGS.onlinePlayers,
-          chatMode: data.chatMode ?? DEFAULT_SIM_SETTINGS.chatMode,
-          winningsMode: data.winningsMode ?? DEFAULT_SIM_SETTINGS.winningsMode,
-          minRocketBots: data.minRocketBots ?? DEFAULT_SIM_SETTINGS.minRocketBots,
-          maxRocketBots: data.maxRocketBots ?? DEFAULT_SIM_SETTINGS.maxRocketBots,
+    
+    const initSettings = async () => {
+      // Simulation Settings
+      const simRef = doc(db, 'settings', 'simulation');
+      const simSnap = await getDoc(simRef);
+      if (!simSnap.exists()) {
+        await setDoc(simRef, DEFAULT_SIM_SETTINGS);
+      }
+
+      // Rocket Game Initial State
+      const rocketRef = doc(db, 'settings', 'rocket_game');
+      const rocketSnap = await getDoc(rocketRef);
+      if (!rocketSnap.exists()) {
+        await setDoc(rocketRef, {
+          status: 'waiting',
+          startTime: serverTimestamp(),
+          crashMultiplier: 2.5,
+          roundId: Date.now().toString(),
+          history: [1.2, 5.4, 2.1, 1.05, 12.0]
         });
-      } else {
-        setDoc(settingsRef, DEFAULT_SIM_SETTINGS);
+      }
+    };
+
+    initSettings();
+
+    // Listen to sim settings
+    const simRef = doc(db, 'settings', 'simulation');
+    const unsubSim = onSnapshot(simRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setSimSettings(docSnap.data() as SimSettings);
       }
     });
-    return () => unsub();
+
+    return () => unsubSim();
   }, [db]);
 
   const userDocRef = useMemo(() => {
@@ -103,12 +122,10 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const gameData = snap.data();
       if (!gameData) return;
 
-      // Logic: If the GLOBAL game crashes, and I have an active bet in THAT round
       if (gameData.status === 'crashed' && 
           profile.activeRocketBet.roundId === gameData.roundId && 
           !profile.activeRocketBet.cashedOut) {
         
-        // Clean up and record loss only once
         const startTime = gameData.startTime?.toMillis() || 0;
         if (Date.now() - startTime < 3000) {
           recordLoss(profile.activeRocketBet.amount, 'Rocket');
@@ -116,7 +133,6 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       }
       
-      // Cleanup if the round has completely changed
       if (gameData.status === 'waiting' && profile.activeRocketBet.roundId !== gameData.roundId) {
          updateDoc(userDocRef, { activeRocketBet: null });
       }

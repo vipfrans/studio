@@ -298,7 +298,7 @@ export default function RocketPage() {
                     : 'bg-primary hover:bg-primary/90 text-primary-foreground'
                 }`}
               >
-                {!gameData ? 'CONNECTING...' : gameData.status === 'waiting' ? (isUserInRound ? 'WAITING...' : 'PLACE BET') : (hasCashedOut ? 'CASHED OUT' : 'CASH OUT')}
+                {!gameData ? 'INITIALIZING...' : gameData.status === 'waiting' ? (isUserInRound ? 'WAITING...' : 'PLACE BET') : (hasCashedOut ? 'CASHED OUT' : 'CASH OUT')}
               </Button>
             </div>
 
