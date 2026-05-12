@@ -9,12 +9,12 @@ export const BackgroundMusic = () => {
   useEffect(() => {
     const playAudio = () => {
       if (audioRef.current) {
-        // نستخدم رابط موسيقى هادئة جداً ومستقرة (Deep Calm Ambient)
+        // نستخدم المقطوعة الهادئة والسينمائية المطلوبة من Pixabay
         audioRef.current.volume = 0;
         audioRef.current.play().then(() => {
           let vol = 0;
           const fadeInterval = setInterval(() => {
-            if (vol < 0.2) {
+            if (vol < 0.15) { // حجم صوت هادئ جداً للخلفية
               vol += 0.01;
               if (audioRef.current) audioRef.current.volume = vol;
             } else {
@@ -27,29 +27,31 @@ export const BackgroundMusic = () => {
       }
     };
 
-    // الاستماع لأي تفاعل في الموقع لبدء الموسيقى (بسبب قيود المتصفحات)
     const handleInteraction = () => {
       playAudio();
       window.removeEventListener('click', handleInteraction);
       window.removeEventListener('touchstart', handleInteraction);
       window.removeEventListener('mousedown', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
     };
 
     window.addEventListener('click', handleInteraction);
     window.addEventListener('touchstart', handleInteraction);
     window.addEventListener('mousedown', handleInteraction);
+    window.addEventListener('keydown', handleInteraction);
 
     return () => {
       window.removeEventListener('click', handleInteraction);
       window.removeEventListener('touchstart', handleInteraction);
       window.removeEventListener('mousedown', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
     };
   }, []);
 
   return (
     <audio ref={audioRef} loop preload="auto">
-      {/* موسيقى Ambient هادئة جداً للنوم والراحة النفسية */}
-      <source src="https://cdn.pixabay.com/audio/2022/03/10/audio_c8c8a7315b.mp3" type="audio/mpeg" />
+      {/* Musical Relaxing Cinematic Pads - Pixabay */}
+      <source src="https://cdn.pixabay.com/audio/2025/01/30/audio_f3b5c46e01.mp3" type="audio/mpeg" />
     </audio>
   );
 };
