@@ -64,6 +64,17 @@ export const LastWinnings = () => {
   }, [realWins]);
 
   useEffect(() => {
+    if (simSettings.winningsMode === 'N') return;
+
+    const getInterval = () => {
+      switch(simSettings.winningsMode) {
+        case 'S': return 8000;
+        case 'M': return 4000;
+        case 'T': return 1500;
+        default: return 4000;
+      }
+    };
+
     const generateWinning = () => {
       const users = ['Frosty', 'Lumine', 'VoidX', 'Ghost', 'Stellar', 'Rex', 'Kone', 'Valk', 'Vortex', 'Pulse'];
       const games = ['Rocket', 'Mines', 'Coinflip', 'Cases'] as const;
@@ -82,9 +93,9 @@ export const LastWinnings = () => {
       setWinnings(prev => [newWin, ...prev].slice(0, 10));
     };
 
-    const interval = setInterval(generateWinning, 4000);
+    const interval = setInterval(generateWinning, getInterval());
     return () => clearInterval(interval);
-  }, []);
+  }, [simSettings.winningsMode]);
 
   useEffect(() => {
     const updateOnlinePlayers = () => {

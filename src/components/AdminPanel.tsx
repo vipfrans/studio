@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Sparkles, Rocket, Megaphone, UserPlus, Users } from 'lucide-react';
+import { X, Sparkles, Rocket, Megaphone, UserPlus, Users, Coins } from 'lucide-react';
 import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -111,6 +111,38 @@ export const AdminPanel = () => {
           </div>
 
           <div className="space-y-2">
+            <p className="text-[8px] text-muted-foreground uppercase font-black">Chat Frequency: {simSettings?.chatMode || 'M'}</p>
+            <div className="grid grid-cols-4 gap-1">
+              {['N', 'S', 'M', 'T'].map((m) => (
+                <Button 
+                  key={m}
+                  onClick={() => updateSimSettings({ chatMode: m as any })}
+                  variant={simSettings?.chatMode === m ? 'default' : 'outline'}
+                  className="h-8 text-[10px] font-bold p-0"
+                >
+                  {m}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-[8px] text-muted-foreground uppercase font-black">Wins Frequency: {simSettings?.winningsMode || 'M'}</p>
+            <div className="grid grid-cols-4 gap-1">
+              {['N', 'S', 'M', 'T'].map((m) => (
+                <Button 
+                  key={m}
+                  onClick={() => updateSimSettings({ winningsMode: m as any })}
+                  variant={simSettings?.winningsMode === m ? 'default' : 'outline'}
+                  className="h-8 text-[10px] font-bold p-0"
+                >
+                  {m}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
             <p className="text-[8px] text-muted-foreground uppercase font-black">Rocket Bots Range</p>
             <div className="flex gap-2">
               <Input 
@@ -133,22 +165,6 @@ export const AdminPanel = () => {
                 }}
                 className="h-8 text-[10px] bg-black/10"
               />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <p className="text-[8px] text-muted-foreground uppercase font-black">Chat Frequency: {simSettings?.chatMode || 'M'}</p>
-            <div className="grid grid-cols-4 gap-1">
-              {['N', 'S', 'M', 'T'].map((m) => (
-                <Button 
-                  key={m}
-                  onClick={() => updateSimSettings({ chatMode: m as any })}
-                  variant={simSettings?.chatMode === m ? 'default' : 'outline'}
-                  className="h-8 text-[10px] font-bold p-0"
-                >
-                  {m}
-                </Button>
-              ))}
             </div>
           </div>
         </div>

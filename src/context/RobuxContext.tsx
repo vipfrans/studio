@@ -8,6 +8,7 @@ import { doc, updateDoc, increment, collection, addDoc, serverTimestamp, arrayUn
 interface SimSettings {
   onlinePlayers: number;
   chatMode: 'N' | 'S' | 'M' | 'T'; // No, Small, Medium, Trend
+  winningsMode: 'N' | 'S' | 'M' | 'T'; // No, Slow, Medium, Turbo
   minRocketBots: number;
   maxRocketBots: number;
 }
@@ -37,6 +38,7 @@ interface RobuxContextType {
 const DEFAULT_SIM_SETTINGS: SimSettings = {
   onlinePlayers: 3142,
   chatMode: 'M',
+  winningsMode: 'M',
   minRocketBots: 4,
   maxRocketBots: 14
 };
@@ -67,6 +69,7 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setSimSettings({
           onlinePlayers: data.onlinePlayers ?? DEFAULT_SIM_SETTINGS.onlinePlayers,
           chatMode: data.chatMode ?? DEFAULT_SIM_SETTINGS.chatMode,
+          winningsMode: data.winningsMode ?? DEFAULT_SIM_SETTINGS.winningsMode,
           minRocketBots: data.minRocketBots ?? DEFAULT_SIM_SETTINGS.minRocketBots,
           maxRocketBots: data.maxRocketBots ?? DEFAULT_SIM_SETTINGS.maxRocketBots,
         });
