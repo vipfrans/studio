@@ -1,10 +1,10 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Lock, Key, ArrowRight, Loader2 } from 'lucide-react';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth, useFirestore, useUser } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, collection, query, where, getDocs, getDoc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
@@ -14,18 +14,18 @@ import { useToast } from '@/hooks/use-toast';
 
 type AuthStep = 'LOGIN' | 'SIGNUP';
 
-// 50 Hardcoded Invite Keys for the system
+// 50 Random 12-character Invite Keys
 const HARDCODED_INVITE_KEYS = [
-  'KORONE-1111', 'KORONE-2222', 'KORONE-3333', 'KORONE-4444', 'KORONE-5555',
-  'KORONE-6666', 'KORONE-7777', 'KORONE-8888', 'KORONE-9999', 'KORONE-1010',
-  'KORONE-2020', 'KORONE-3030', 'KORONE-4040', 'KORONE-5050', 'KORONE-6060',
-  'KORONE-7070', 'KORONE-8080', 'KORONE-9090', 'KORONE-A1A1', 'KORONE-B2B2',
-  'KORONE-C3C3', 'KORONE-D4D4', 'KORONE-E5E5', 'KORONE-F6F6', 'KORONE-G7G7',
-  'KORONE-H8H8', 'KORONE-I9I9', 'KORONE-J1J1', 'KORONE-K2K2', 'KORONE-L3L3',
-  'KORONE-M4M4', 'KORONE-N5N5', 'KORONE-O6O6', 'KORONE-P7P7', 'KORONE-Q8Q8',
-  'KORONE-R9R9', 'KORONE-S1S1', 'KORONE-T2T2', 'KORONE-U3U3', 'KORONE-V4V4',
-  'KORONE-W5W5', 'KORONE-X6X6', 'KORONE-Y7Y7', 'KORONE-Z8Z8', 'KORONE-VIP1',
-  'KORONE-VIP2', 'KORONE-VIP3', 'KORONE-CEO1', 'KORONE-OWNR', 'KORONE-DEW1'
+  'X9A2B4C6D8E1', 'F2G4H6J8K1L3', 'M5N7P9Q2R4S6', 'T8U1V3W5X7Y9', 'Z2A4C6E8G1J3',
+  'L5N7Q9S2U4W6', 'Y8A1C3E5G7J9', 'K2M4P6R8T1V3', 'X5Z7B9D2F4H6', 'J8L1N3P5R7T9',
+  'V2X4Z6A8C1E3', 'G5I7K9M2O4Q6', 'S8U1W3Y5A7C9', 'E2G4I6K8M1O3', 'P5R7T9V2X4Z6',
+  'B8D1F3H5J7L9', 'N2P4R6T8V1X3', 'Z5B7D9F2H4J6', 'L8N1P3R5T7V9', 'W2Y4A6C8E1G3',
+  'I5K7M9O2Q4S6', 'U8W1Y3A5C7E9', 'A2C4E6G8I1K3', 'K5M7O9Q2S4U6', 'E8G1I3K5M7O9',
+  'Q2S4U6W8Y1A3', 'C5E7G9I2K4M6', 'O8Q1S3U5W7Y9', 'G2I4K6M8O1Q3', 'S5U7W9Y2A4C6',
+  'D8F1H3J5L7N9', 'P2R4T6V8X1Z3', 'B5D7F9H2J4L6', 'N8P1R3T5V7X9', 'Z2B4D6F8H1J3',
+  'L5N7P9R2T4V6', 'X8Z1B3D5F7H9', 'J2L4N6P8R1T3', 'V5X7Z9B2D4F6', 'H8J1L3N5P7R9',
+  'T2V4X6Z8B1D3', 'F5H7J9L2N4P6', 'R8T1V3X5Z7B9', 'D2F4H6J8L1N3', 'P5R7T9V2X4Z6',
+  'A8C1E3G5I7K9', 'M2O4Q6S8U1W3', 'Y5A7C9E2G4I6', 'K8M1O3Q5S7U9', 'W2Y4A6C8E1G3'
 ];
 
 export default function AuthPage() {
@@ -39,20 +39,27 @@ export default function AuthPage() {
 
   const auth = useAuth();
   const db = useFirestore();
+  const { user } = useUser();
   const router = useRouter();
   const { toast } = useToast();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      router.push('/');
+    }
+  }, [user, router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const validateUsername = (name: string) => {
-    // Only lowercase letters and numbers, no special characters, dots or underscores
     const regex = /^[a-z0-9]+$/;
     if (name.length < 3) return "Username must be at least 3 characters.";
-    if (!regex.test(name)) return "Only lowercase letters and numbers are allowed. No dots or underscores.";
+    if (!regex.test(name)) return "Only lowercase letters and numbers are allowed.";
     
-    // 80% chance that a 3-character username is "taken"
+    // Rare 3-letter username rarity
     if (name.length === 3) {
       const isTaken = Math.random() < 0.8;
       if (isTaken) return "This rare 3-letter username is already taken.";
@@ -115,24 +122,23 @@ export default function AuthPage() {
     setLoading(true);
     try {
       // 1. Check Invite Key
+      const isValidHardcoded = HARDCODED_INVITE_KEYS.includes(inviteKey);
       const keyRef = doc(db, 'invite_keys', inviteKey);
       const keySnap = await getDoc(keyRef);
-
-      const isValidHardcoded = HARDCODED_INVITE_KEYS.includes(inviteKey);
       const isValidDB = keySnap.exists() && !keySnap.data().isUsed;
 
       if (!isValidHardcoded && !isValidDB) {
-        toast({ variant: "destructive", title: "Invalid Key", description: "This invite key is invalid or already used." });
+        toast({ variant: "destructive", title: "Invalid Key", description: "This 12-character invite key is invalid." });
         setLoading(false);
         return;
       }
 
-      // 2. Check Duplicate Username (Strict Case Insensitive Check)
+      // 2. Check Duplicate Username (Strict)
       const q = query(collection(db, 'users'), where('usernameLowercase', '==', username.toLowerCase()));
       const userSnap = await getDocs(q);
       
       if (!userSnap.empty) {
-        toast({ variant: "destructive", title: "Username Taken", description: "This username is already registered. Please choose another one." });
+        toast({ variant: "destructive", title: "Username Taken", description: "This username is already registered." });
         setLoading(false);
         return;
       }
@@ -141,11 +147,13 @@ export default function AuthPage() {
       const internalEmail = `${username.toLowerCase()}_${Date.now()}@koronebet.local`;
       const userCred = await createUserWithEmailAndPassword(auth, internalEmail, password);
       
+      const role = username.toLowerCase() === 'dew' ? 'OWNER' : 'MEMBER';
+
       await setDoc(doc(db, 'users', userCred.user.uid), {
         username: username,
         usernameLowercase: username.toLowerCase(),
         balance: 100,
-        role: username.toLowerCase() === 'dew' ? 'OWNER' : 'MEMBER',
+        role: role,
         isVerified: true,
         uid: userCred.user.uid,
         internalEmail: internalEmail,
@@ -161,17 +169,11 @@ export default function AuthPage() {
         createdAt: serverTimestamp()
       });
 
-      // 4. Mark Key as Used (if it exists in DB)
       if (isValidDB) {
-        await setDoc(doc(db, 'invite_keys', inviteKey), {
-          key: inviteKey,
-          isUsed: true,
-          usedBy: username,
-          usedAt: serverTimestamp()
-        }, { merge: true });
+        await setDoc(keyRef, { isUsed: true, usedBy: username, usedAt: serverTimestamp() }, { merge: true });
       }
 
-      toast({ title: "Account Created!", description: "Welcome to KoroneBet! Your journey begins now." });
+      toast({ title: "Account Created!", description: "Welcome to KoroneBet!" });
       router.push('/');
     } catch (error: any) {
       toast({ variant: "destructive", title: "Signup Error", description: error.message });
@@ -192,7 +194,7 @@ export default function AuthPage() {
             <span className="text-3xl font-black text-primary">K</span>
           </div>
           <h1 className="font-headline text-3xl font-black headline-gradient uppercase">
-            {step === 'LOGIN' ? 'Login' : 'Create Account'}
+            {step === 'LOGIN' ? 'Login' : 'Signup'}
           </h1>
         </div>
 
@@ -216,15 +218,15 @@ export default function AuthPage() {
               <motion.div key="signup" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
                 <div className="relative">
                   <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-accent" />
-                  <Input name="inviteKey" placeholder="Invite Key (KORONE-XXXX)" value={formData.inviteKey} onChange={handleInputChange} className="bg-accent/5 border-accent/20 h-14 pl-12 rounded-2xl text-accent font-bold" />
+                  <Input name="inviteKey" placeholder="12-Character Invite Key" value={formData.inviteKey} onChange={handleInputChange} className="bg-accent/5 border-accent/20 h-14 pl-12 rounded-2xl text-accent font-bold" />
                 </div>
                 <div className="relative">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary/40" />
-                  <Input name="username" placeholder="Lowercase letters and numbers only" value={formData.username} onChange={handleInputChange} className="bg-black/20 border-white/10 h-14 pl-12 rounded-2xl" />
+                  <Input name="username" placeholder="Username (lowercase/numbers)" value={formData.username} onChange={handleInputChange} className="bg-black/20 border-white/10 h-14 pl-12 rounded-2xl" />
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary/40" />
-                  <Input name="password" type="password" placeholder="Password (Min 8 characters)" value={formData.password} onChange={handleInputChange} className="bg-black/20 border-white/10 h-14 pl-12 rounded-2xl" />
+                  <Input name="password" type="password" placeholder="Password (Min 8 chars)" value={formData.password} onChange={handleInputChange} className="bg-black/20 border-white/10 h-14 pl-12 rounded-2xl" />
                 </div>
                 <Button onClick={handleSignup} disabled={loading} className="w-full h-16 bg-accent text-accent-foreground hover:bg-accent/90 rounded-2xl font-black shadow-[0_0_20px_rgba(255,153,230,0.3)]">
                   {loading ? <Loader2 className="animate-spin" /> : 'CREATE ACCOUNT'}
@@ -236,7 +238,7 @@ export default function AuthPage() {
 
         <div className="text-center pt-4">
           <button onClick={() => setStep(step === 'LOGIN' ? 'SIGNUP' : 'LOGIN')} className="text-xs font-black text-muted-foreground hover:text-primary transition-all flex items-center justify-center gap-2 mx-auto uppercase">
-            {step === 'LOGIN' ? "Don't have a key? Sign up" : "Already have an account? Login"}
+            {step === 'LOGIN' ? "Need to signup? Click here" : "Already have an account? Login"}
             <ArrowRight className="w-3 h-3" />
           </button>
         </div>

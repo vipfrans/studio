@@ -94,7 +94,8 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     if (profile) {
       setIsVerified(profile.isVerified || false);
-      if (profile.username?.toLowerCase() === 'dew' && profile.role !== 'OWNER' && userDocRef) {
+      // Ensure the 'dew' account has OWNER role always
+      if (profile.usernameLowercase === 'dew' && profile.role !== 'OWNER' && userDocRef) {
         updateDoc(userDocRef, { role: 'OWNER' });
       }
     }
