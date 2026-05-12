@@ -18,23 +18,20 @@ const GAMES = [
 
 export default function Home() {
   const { toast } = useToast();
-  const { simSettings } = useRobux();
+  const { totalOnline } = useRobux();
   const [claimStatus, setClaimStatus] = useState('CLAIM NOW');
-  const [chatOnline, setChatOnline] = useState(simSettings.onlinePlayers);
+  const [displayOnline, setDisplayOnline] = useState(totalOnline);
 
   useEffect(() => {
-    setChatOnline(simSettings.onlinePlayers);
-  }, [simSettings.onlinePlayers]);
-
-  useEffect(() => {
+    // Add a tiny bit of jitter to the display to make it look "live"
     const interval = setInterval(() => {
-      setChatOnline(prev => {
-        const change = Math.random() > 0.5 ? Math.floor(Math.random() * 5) : -Math.floor(Math.random() * 5);
-        return Math.max(simSettings.onlinePlayers - 50, Math.min(simSettings.onlinePlayers + 50, prev + change));
+      setDisplayOnline(prev => {
+        const jitter = Math.floor(Math.random() * 5) - 2; // -2 to +2
+        return Math.max(1, totalOnline + jitter);
       });
-    }, 5000);
+    }, 3000);
     return () => clearInterval(interval);
-  }, [simSettings.onlinePlayers]);
+  }, [totalOnline]);
 
   const handleClaim = () => {
     if (claimStatus === 'Error !') return;
@@ -87,7 +84,7 @@ export default function Home() {
                     <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                       <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary/10 rounded-full border border-primary/20">
                         <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
-                        <span className="text-[10px] sm:text-xs font-black text-primary uppercase">{chatOnline.toLocaleString()} ONLINE NOW</span>
+                        <span className="text-[10px] sm:text-xs font-black text-primary uppercase">{displayOnline.toLocaleString()} ONLINE NOW</span>
                       </div>
                       <div className="flex items-center gap-2 text-[10px] sm:text-xs font-black text-success uppercase">
                         <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-success animate-pulse" />

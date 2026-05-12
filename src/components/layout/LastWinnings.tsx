@@ -26,7 +26,7 @@ const GAME_ICONS = {
 
 export const LastWinnings = () => {
   const db = useFirestore();
-  const { simSettings, userProfile } = useRobux();
+  const { simSettings, totalOnline } = useRobux();
   const [winnings, setWinnings] = useState<Winning[]>([]);
   const processedRealWinsRef = useRef<Set<string>>(new Set());
   const isInitialLoadRef = useRef(true);
@@ -41,18 +41,14 @@ export const LastWinnings = () => {
   // Handle Real Winnings
   useEffect(() => {
     if (realWins && realWins.length > 0) {
-      // If it's the first time loading, we mark historical wins as processed 
-      // so the current user doesn't see their own old wins immediately.
       if (isInitialLoadRef.current) {
         realWins.forEach((win: any) => {
-          // Mark all existing wins as processed on load
           processedRealWinsRef.current.add(win.id);
         });
         isInitialLoadRef.current = false;
         return;
       }
 
-      // Check for new real wins that haven't been processed
       realWins.slice().reverse().forEach((win: any) => {
         if (!processedRealWinsRef.current.has(win.id)) {
           processedRealWinsRef.current.add(win.id);
@@ -116,7 +112,7 @@ export const LastWinnings = () => {
         </div>
         <div className="flex items-center gap-1.5 mt-0.5 sm:mt-1">
           <Users className="w-2.5 h-2.5 text-muted-foreground" />
-          <span className="text-[9px] sm:text-[10px] font-black text-white">{simSettings.onlinePlayers.toLocaleString()}</span>
+          <span className="text-[9px] sm:text-[10px] font-black text-white">{totalOnline.toLocaleString()}</span>
         </div>
       </div>
       

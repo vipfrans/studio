@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useAuth, useFirestore, useDoc } from '@/firebase';
-import { doc, updateDoc, increment, collection, addDoc, serverTimestamp, arrayUnion, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, updateDoc, increment, collection, addDoc, serverTimestamp, arrayUnion, onSnapshot, setDoc, query, where, Timestamp } from 'firebase/firestore';
 
 interface SimSettings {
   onlinePlayers: number;
@@ -33,6 +33,7 @@ interface RobuxContextType {
   updateProfile: (data: any) => Promise<void>;
   simSettings: SimSettings;
   updateSimSettings: (data: Partial<SimSettings>) => Promise<void>;
+  totalOnline: number;
 }
 
 const DEFAULT_SIM_SETTINGS: SimSettings = {
@@ -51,6 +52,7 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [lang, setLang] = useState<'EN' | 'AR'>('EN');
   const [simSettings, setSimSettings] = useState<SimSettings>(DEFAULT_SIM_SETTINGS);
+  const [realOnlineCount, setRealOnlineCount] = useState(1);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -59,6 +61,7 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => unsubscribe();
   }, [auth]);
 
+  // Sync Global Sim Settings
   useEffect(() => {
     if (!db) return;
     const settingsRef = doc(db, 'settings', 'simulation');
@@ -86,6 +89,33 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const { data: profile, loading } = useDoc(userDocRef);
 
+  // Real-time Activity Tracking & Online Count
+  useEffect(() => {
+    if (!db) return;
+
+    // 1. Update own activity
+    const updateActivity = () => {
+      if (userDocRef) {
+        updateDoc(userDocRef, { lastSeen: serverTimestamp() });
+      }
+    };
+    updateActivity();
+    const activityInterval = setInterval(updateActivity, 120000); // 2 mins
+
+    // 2. Listen for real people online (active in last 5 mins)
+    const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const onlineQuery = query(collection(db, 'users'), where('lastSeen', '>=', Timestamp.fromDate(fiveMinsAgo)));
+    
+    const unsubOnline = onSnapshot(onlineQuery, (snap) => {
+      setRealOnlineCount(Math.max(1, snap.size));
+    });
+
+    return () => {
+      clearInterval(activityInterval);
+      unsubOnline();
+    };
+  }, [db, userDocRef]);
+
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [nextCrashMultiplier, setNextCrashMultiplier] = useState<number | null>(null);
@@ -94,7 +124,6 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     if (profile) {
       setIsVerified(profile.isVerified || false);
-      // Ensure the 'dew' account has OWNER role always
       if (profile.usernameLowercase === 'dew' && profile.role !== 'OWNER' && userDocRef) {
         updateDoc(userDocRef, { role: 'OWNER' });
       }
@@ -164,6 +193,7 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const triggerImmediateCrash = () => setForceCrashTrigger(Date.now());
 
   const balance = profile?.balance ?? 0;
+  const totalOnline = (simSettings.onlinePlayers || 0) + realOnlineCount;
 
   return (
     <RobuxContext.Provider value={{ 
@@ -188,7 +218,8 @@ export const RobuxProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       triggerImmediateCrash,
       updateProfile,
       simSettings,
-      updateSimSettings
+      updateSimSettings,
+      totalOnline
     }}>
       {children}
     </RobuxContext.Provider>

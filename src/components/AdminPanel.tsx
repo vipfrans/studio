@@ -11,7 +11,7 @@ import { useFirestore } from '@/firebase';
 import { doc, setDoc, serverTimestamp, collection, query, where, getDocs, updateDoc, increment } from 'firebase/firestore';
 
 export const AdminPanel = () => {
-  const { userProfile, toggleAdmin, setNextCrashMultiplier, triggerImmediateCrash, simSettings, updateSimSettings } = useRobux();
+  const { userProfile, toggleAdmin, setNextCrashMultiplier, triggerImmediateCrash, simSettings, updateSimSettings, totalOnline } = useRobux();
   const db = useFirestore();
   
   const [targetMult, setTargetMult] = useState('');
@@ -122,7 +122,10 @@ export const AdminPanel = () => {
           </label>
           
           <div className="space-y-2">
-            <p className="text-[8px] text-muted-foreground uppercase font-black">Online Players Count</p>
+            <div className="flex items-center justify-between">
+              <p className="text-[8px] text-muted-foreground uppercase font-black">Simulated Baseline</p>
+              <span className="text-[10px] font-black text-primary">LIVE: {totalOnline.toLocaleString()}</span>
+            </div>
             <div className="flex gap-2">
               <Input 
                 type="number" 
@@ -131,7 +134,7 @@ export const AdminPanel = () => {
                 onChange={handleOnlinePlayersChange}
                 className="h-9 text-xs font-bold bg-black/20"
               />
-              <div className="flex items-center px-2 bg-primary/10 rounded-lg border border-primary/20 text-[10px] font-bold text-primary">
+              <div className="flex items-center px-2 bg-primary/10 rounded-lg border border-primary/20 text-[10px] font-bold text-primary uppercase">
                 RUNNING
               </div>
             </div>

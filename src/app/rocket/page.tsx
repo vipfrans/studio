@@ -9,7 +9,7 @@ import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-const REALISTIC_NAMES = ['Frosty_Blox', 'Lumine_Dev', 'VoidX_Gamer', 'Ghost_Rider', 'Stellar_YT', 'Valk_Queen', 'Neon_Player', 'Rex_Bet', 'Kone_Pro', 'Silent_Ace', 'Storm_Rider', 'Pixel_Warrior', 'Cyber_Punk', 'Robo_Gamer', 'Elite_King', 'Vortex', 'Pulse', 'Shadow'];
+const REALISTIC_NAMES = ['Frosty_Blox', 'Lumine_Dev', 'VoidX_Gamer', 'Ghost_Rider', 'Stellar_YT', 'Valk_Queen', 'Neon_Player', 'Rex_Bet', 'Kone_Pro', 'Silent_Ace', 'Storm_Rider', 'Pixel_Warrior', 'Cyber_Punk', 'Robo_Gamer', 'Elite_King', 'Vortex', 'Pulse', 'Shadow', 'Azure', 'Cinder', 'Mystic', 'Blaze', 'Glitch', 'Static'];
 
 interface PlayerBet {
   user: string;
@@ -21,7 +21,7 @@ interface PlayerBet {
 }
 
 export default function RocketPage() {
-  const { balance, removeRobux, addRobux, recordLoss, nextCrashMultiplier, setNextCrashMultiplier, userProfile, lang, simSettings } = useRobux();
+  const { balance, removeRobux, addRobux, recordLoss, nextCrashMultiplier, setNextCrashMultiplier, userProfile, lang, simSettings, totalOnline } = useRobux();
   const [betAmount, setBetAmount] = useState(100);
   const [multiplier, setMultiplier] = useState(1.00);
   const [gameState, setGameState] = useState<'waiting' | 'flying' | 'crashed'>('waiting');
@@ -65,12 +65,15 @@ export default function RocketPage() {
       });
     }, 1000);
 
-    // Use Sim Settings for bot count
-    const min = simSettings.minRocketBots || 4;
-    const max = simSettings.maxRocketBots || 14;
+    // Dynamic Bot Count - Balanced with total online count
+    // If totalOnline is high, we can have more bots.
+    const onlineBase = Math.floor(totalOnline / 200); // 1 extra bot per 200 online
+    const min = (simSettings.minRocketBots || 4) + onlineBase;
+    const max = (simSettings.maxRocketBots || 14) + (onlineBase * 2);
+    
     const botCount = Math.floor(Math.random() * (max - min + 1)) + min;
     const shuffledNames = [...REALISTIC_NAMES].sort(() => 0.5 - Math.random());
-    const bots = shuffledNames.slice(0, botCount).map(name => ({
+    const bots = shuffledNames.slice(0, Math.min(botCount, REALISTIC_NAMES.length)).map(name => ({
       user: name,
       bet: Math.floor(Math.random() * 800) + 50,
       avatarUrl: `https://picsum.photos/seed/${name}/40/40`,
