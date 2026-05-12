@@ -151,7 +151,7 @@ export default function RocketPage() {
 
       if (gameData.status === 'waiting' && elapsed > 6000) {
         await handleStartFlyingSync();
-      } else if (gameData.status === 'crashed' && elapsed > 3000) {
+      } else if (gameData.status === 'crashed' && elapsed > 4000) {
         await handleWaitCycleSync();
       } else if (!gameData.status || (gameData.status === 'flying' && multiplier > 1000)) {
         await handleWaitCycleSync();
@@ -204,10 +204,7 @@ export default function RocketPage() {
   const handlePlaceBet = async () => {
     if (!userProfile || isUserInCurrentRound || isQueued || balance < betAmount) return;
     
-    // Determine the roundId to save
-    // If we are in 'flying' status, it's definitely a queued bet for the next round.
-    // If we are in 'waiting' or 'crashed', it's for the current/approaching round.
-    const targetRoundId = (gameData?.status === 'flying') ? 'queued' : gameData.roundId;
+    const targetRoundId = (gameData?.status === 'flying' || gameData?.status === 'crashed') ? 'queued' : gameData.roundId;
 
     await removeRobux(betAmount);
     await updateDoc(doc(db, 'users', userProfile.uid), {
@@ -222,7 +219,6 @@ export default function RocketPage() {
 
   const handleCancelBet = async () => {
     if (!userProfile || (!isUserInCurrentRound && !isQueued)) return;
-    // Cannot cancel if flight has already started and we are in it
     if (isUserInCurrentRound && gameData?.status === 'flying') return;
 
     const betVal = userBetInfo.amount;
@@ -241,11 +237,11 @@ export default function RocketPage() {
     });
   };
 
-  // Bot Management
+  // Bot Management - More Realistic Logic
   useEffect(() => {
     if (!gameData?.roundId) return;
     const seed = gameData.roundId.split('').reduce((a: number, b: string) => (a + b.charCodeAt(0)), 0);
-    const botCount = (seed % 8) + 8;
+    const botCount = (seed % 10) + 10;
     
     const shuffledNames = [...REALISTIC_NAMES].sort((a, b) => {
       const hashA = a.split('').reduce((acc, char) => acc + char.charCodeAt(0) + seed, 0);
@@ -256,16 +252,20 @@ export default function RocketPage() {
     const bots = shuffledNames.slice(0, botCount).map((name, idx) => {
       const botSeed = seed + idx;
       const bet = (botSeed % 500) + 50;
-      // Assign an "intelligence" factor: a target multiplier where they will cash out
-      // Some bots are conservative, some are greedy.
-      const targetMult = 1.1 + (Math.random() * Math.random() * 15); 
+      
+      // Better distribution of target multipliers
+      let targetMult = 1.1;
+      const rand = Math.random();
+      if (rand < 0.4) targetMult = 1.1 + (Math.random() * 0.9); // 40% conservative (1.1 - 2.0)
+      else if (rand < 0.8) targetMult = 2.0 + (Math.random() * 3.0); // 40% moderate (2.0 - 5.0)
+      else targetMult = 5.0 + (Math.random() * 10.0); // 20% high risk (5.0 - 15.0)
       
       return {
         user: name,
         bet: bet,
         avatarUrl: `https://picsum.photos/seed/${name}/40/40`,
         cashedOut: false,
-        targetMultiplier: targetMult
+        targetMultiplier: Number(targetMult.toFixed(2))
       };
     });
 
@@ -277,12 +277,11 @@ export default function RocketPage() {
       const interval = setInterval(() => {
         setActiveBets(prev => prev.map(p => {
           if (!p.cashedOut && multiplier >= (p.targetMultiplier || 1.5)) {
-            // Only cash out if the multiplier hasn't crashed yet (redundant but safe)
             return { ...p, cashedOut: true, cashedOutAt: Number(multiplier.toFixed(2)) };
           }
           return p;
         }));
-      }, 200);
+      }, 100);
       return () => clearInterval(interval);
     }
   }, [gameData?.status, multiplier]);
@@ -297,7 +296,6 @@ export default function RocketPage() {
   const renderButton = () => {
     if (!gameData) return <Button disabled className="w-full h-16 rounded-2xl bg-primary/20">INITIALIZING...</Button>;
 
-    // Case 1: User has an active bet in the CURRENT flying round
     if (isUserInCurrentRound && gameData.status === 'flying') {
       if (hasCashedOut) {
         return <Button disabled className="w-full h-16 rounded-2xl bg-success/20 text-success font-black text-xl">CASHED OUT</Button>;
@@ -312,10 +310,7 @@ export default function RocketPage() {
       );
     }
 
-    // Case 2: User has a bet placed but round is either waiting or it's queued for next
     if (isUserInCurrentRound || isQueued) {
-      // If we are in waiting phase and bet is for current, we can cancel.
-      // If we are in flying phase and bet is queued for next, we can cancel.
       return (
         <Button 
           onClick={handleCancelBet}
@@ -326,14 +321,13 @@ export default function RocketPage() {
       );
     }
 
-    // Case 3: Default "Place Bet" (Available in all statuses if not betting)
     return (
       <Button 
         onClick={handlePlaceBet}
         disabled={balance < betAmount}
-        className="w-full h-16 bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xl rounded-2xl shadow-xl"
+        className="w-full h-16 bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xl rounded-2xl shadow-xl transition-all active:scale-[0.98]"
       >
-        {gameData.status === 'flying' ? 'BET NEXT ROUND' : 'PLACE BET'}
+        {gameData.status === 'flying' || gameData.status === 'crashed' ? 'BET NEXT ROUND' : 'PLACE BET'}
       </Button>
     );
   };
@@ -381,7 +375,7 @@ export default function RocketPage() {
                   <span className="text-[11px] font-black text-primary">{activeBets.length + (isUserInCurrentRound ? 1 : 0)}</span>
                 </div>
               </div>
-              <div className="space-y-2 max-h-[250px] sm:max-h-[300px] overflow-y-auto no-scrollbar pr-2">
+              <div className="space-y-2 max-h-[250px] sm:max-h-[350px] overflow-y-auto no-scrollbar pr-2">
                 {(isUserInCurrentRound || isQueued) && (
                   <div className={`flex items-center justify-between p-3 rounded-2xl border ${hasCashedOut ? 'bg-success/10 border-success/40 shadow-[0_0_10px_rgba(115,255,115,0.2)]' : (isQueued ? 'bg-amber-500/10 border-amber-500/30' : (gameData?.status === 'crashed' ? 'bg-red-500/10 border-red-500/40' : 'bg-primary/10 border-primary/40 shadow-[0_0_15px_rgba(200,153,255,0.2)]'))}`}>
                     <div className="flex items-center gap-3">
@@ -391,27 +385,27 @@ export default function RocketPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-bold text-white/60">R$ {userBetInfo?.amount}</span>
                       {hasCashedOut ? (
-                        <span className="text-[10px] font-black text-success glow-sm">{userBetInfo?.cashedOutAt?.toFixed(2)}x</span>
+                        <span className="text-[11px] font-black text-success glow-sm">{userBetInfo?.cashedOutAt?.toFixed(2)}x</span>
                       ) : (
-                        isQueued ? <span className="text-[8px] font-black text-amber-500 uppercase">Queued</span> : (gameData?.status === 'crashed' && <span className="text-[10px] font-black text-red-500">LOST</span>)
+                        isQueued ? <span className="text-[8px] font-black text-amber-500 uppercase">Next Round</span> : (gameData?.status === 'crashed' && <span className="text-[11px] font-black text-red-500">LOST</span>)
                       )}
                     </div>
                   </div>
                 )}
                 {activeBets.map((player, i) => (
-                  <div key={i} className={`flex items-center justify-between p-3 rounded-2xl border ${
-                    player.cashedOut ? 'bg-success/5 border-success/20' : (gameData?.status === 'crashed' ? 'bg-red-500/5 border-red-500/20' : 'bg-white/5 border-white/5')
+                  <div key={i} className={`flex items-center justify-between p-3 rounded-2xl border transition-all duration-300 ${
+                    player.cashedOut ? 'bg-success/10 border-success/30' : (gameData?.status === 'crashed' ? 'bg-red-500/10 border-red-500/30' : 'bg-white/5 border-white/5')
                   }`}>
                     <div className="flex items-center gap-3">
                       <img src={player.avatarUrl} className="w-7 h-7 rounded-lg object-cover" alt="Avatar" />
-                      <span className={`text-[11px] font-bold truncate max-w-[80px] ${player.cashedOut ? 'text-success' : (gameData?.status === 'crashed' ? 'text-red-500' : 'text-white')}`}>{player.user}</span>
+                      <span className={`text-[11px] font-bold truncate max-w-[80px] ${player.cashedOut ? 'text-success' : 'text-white'}`}>{player.user}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-bold text-white/40">R$ {player.bet}</span>
                       {player.cashedOut ? (
-                        <span className="text-[10px] font-black text-success">{player.cashedOutAt?.toFixed(2)}x</span>
+                        <span className="text-[11px] font-black text-success">{player.cashedOutAt?.toFixed(2)}x</span>
                       ) : (
-                        gameData?.status === 'crashed' && <span className="text-[10px] font-black text-red-500">LOST</span>
+                        gameData?.status === 'crashed' && <span className="text-[11px] font-black text-red-500">LOST</span>
                       )}
                     </div>
                   </div>
@@ -494,4 +488,3 @@ export default function RocketPage() {
     </div>
   );
 }
-
