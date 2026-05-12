@@ -3,7 +3,7 @@
 
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, Shield, Target, TrendingUp, History, ArrowLeft, Check, Loader2, Award, Camera, Crown, LogOut, Rocket, Bomb, Coins, Box } from 'lucide-react';
+import { Settings, Shield, Target, TrendingUp, History, ArrowLeft, Check, Loader2, Award, Camera, Crown, LogOut, Rocket, Bomb, Coins, Box, LockKeyhole } from 'lucide-react';
 import Link from 'next/link';
 import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
@@ -34,8 +34,8 @@ export default function ProfilePage() {
     const trimmedName = newUsername.trim();
     if (!trimmedName || userProfile.hasChangedUsername) return;
 
-    if (trimmedName.length < 4) {
-      toast({ variant: "destructive", title: "Error", description: "Username is too short or restricted." });
+    if (trimmedName.length < 3) {
+      toast({ variant: "destructive", title: "Error", description: "Username must be at least 3 characters." });
       return;
     }
 
@@ -97,7 +97,7 @@ export default function ProfilePage() {
 
   return (
     <div className={`max-w-6xl mx-auto px-4 py-8 sm:py-12 pb-32 ${lang === 'AR' ? 'rtl text-right' : ''}`}>
-      <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary mb-8">
+      <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary mb-8 transition-colors">
         <ArrowLeft className={`w-4 h-4 ${lang === 'AR' ? 'rotate-180' : ''}`} />
         {lang === 'EN' ? 'Back to Lobby' : 'الرجوع للرئيسية'}
       </Link>
@@ -140,32 +140,44 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="glass p-6 rounded-[24px] border-white/5">
-            <h3 className="text-sm font-black mb-4 uppercase tracking-wider flex items-center gap-2">
-              <Settings className="w-4 h-4 text-primary" /> Settings
-            </h3>
-            <div className="space-y-4">
+          <div className="glass p-6 rounded-[24px] border-white/5 space-y-6">
+            <div>
+              <h3 className="text-xs font-black mb-4 uppercase tracking-wider flex items-center gap-2 text-primary">
+                <Settings className="w-4 h-4" /> {lang === 'EN' ? 'Username Settings' : 'إعدادات الاسم'}
+              </h3>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase">Change Username (Once)</label>
+                <label className="text-[9px] font-black text-muted-foreground uppercase">Change Username (Once)</label>
                 <div className="flex gap-2">
                   <Input 
                     placeholder="New Username" 
                     value={newUsername} 
                     onChange={e => setNewUsername(e.target.value)}
                     disabled={userProfile.hasChangedUsername}
-                    className="h-10 bg-black/20"
+                    className="h-10 bg-black/20 text-xs"
                   />
                   <Button onClick={handleUpdateUsername} disabled={isUpdating || userProfile.hasChangedUsername} className="h-10 px-4">
                     {isUpdating ? <Loader2 className="animate-spin" /> : <Check className="w-4 h-4" />}
                   </Button>
                 </div>
               </div>
-              
-              <Button onClick={handleLogout} variant="destructive" className="w-full gap-2 h-12 rounded-xl mt-4 font-black">
-                <LogOut className="w-4 h-4" /> 
-                {lang === 'EN' ? 'LOGOUT ACCOUNT' : 'تسجيل الخروج'}
-              </Button>
             </div>
+
+            <div className="pt-4 border-t border-white/5">
+              <h3 className="text-xs font-black mb-4 uppercase tracking-wider flex items-center gap-2 text-primary">
+                <LockKeyhole className="w-4 h-4" /> {lang === 'EN' ? 'Security' : 'الأمان'}
+              </h3>
+              <Link href="/profile/change-password">
+                <Button variant="outline" className="w-full h-12 rounded-xl border-primary/20 hover:border-primary/40 hover:bg-primary/5 gap-2 text-xs font-black">
+                  <LockKeyhole className="w-4 h-4" />
+                  {lang === 'EN' ? 'CHANGE PASSWORD' : 'تغيير كلمة السر'}
+                </Button>
+              </Link>
+            </div>
+            
+            <Button onClick={handleLogout} variant="destructive" className="w-full gap-2 h-12 rounded-xl mt-4 font-black text-xs">
+              <LogOut className="w-4 h-4" /> 
+              {lang === 'EN' ? 'LOGOUT ACCOUNT' : 'تسجيل الخروج'}
+            </Button>
           </div>
         </motion.div>
 
@@ -204,19 +216,19 @@ export default function ProfilePage() {
                       {getGameIcon(game.game)}
                     </div>
                     <div>
-                      <p className="font-bold text-white">{game.game}</p>
+                      <p className="font-bold text-white text-sm sm:text-base">{game.game}</p>
                       <p className="text-[10px] text-muted-foreground">{new Date(game.createdAt).toLocaleString()}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className={`font-black ${game.type === 'WIN' ? 'text-success' : 'text-white/40'}`}>
+                    <p className={`font-black text-sm sm:text-base ${game.type === 'WIN' ? 'text-success' : 'text-white/40'}`}>
                       {game.type === 'WIN' ? '+' : '-'}R$ {Math.floor(game.amount).toLocaleString()}
                     </p>
                   </div>
                 </div>
               ))}
               {(!userProfile.gamesHistory || userProfile.gamesHistory.length === 0) && (
-                <div className="h-40 flex items-center justify-center text-muted-foreground">No recent games</div>
+                <div className="h-40 flex items-center justify-center text-muted-foreground uppercase font-bold tracking-widest opacity-20">No recent games</div>
               )}
             </div>
           </div>

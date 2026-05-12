@@ -26,9 +26,10 @@ const GAME_ICONS = {
 
 export const LastWinnings = () => {
   const db = useFirestore();
-  const { simSettings } = useRobux();
+  const { simSettings, userProfile } = useRobux();
   const [winnings, setWinnings] = useState<Winning[]>([]);
   const processedRealWinsRef = useRef<Set<string>>(new Set());
+  const isInitialLoadRef = useRef(true);
 
   const winsQuery = useMemo(() => {
     if (!db) return null;
@@ -37,9 +38,21 @@ export const LastWinnings = () => {
 
   const { data: realWins } = useCollection(winsQuery) as any;
 
-  // Handle Real Winnings: Add them to the sliding list so they flow away
+  // Handle Real Winnings
   useEffect(() => {
     if (realWins && realWins.length > 0) {
+      // If it's the first time loading, don't show the user's own last win
+      if (isInitialLoadRef.current) {
+        realWins.forEach((win: any) => {
+          // If the win belongs to the current user during initial load, mark it as processed
+          if (win.username === userProfile?.username) {
+            processedRealWinsRef.current.add(win.id);
+          }
+        });
+        isInitialLoadRef.current = false;
+        return;
+      }
+
       const latestReal = realWins[0];
       const winId = latestReal.id;
       
@@ -58,7 +71,7 @@ export const LastWinnings = () => {
         setWinnings(prev => [newWin, ...prev].slice(0, 15));
       }
     }
-  }, [realWins]);
+  }, [realWins, userProfile?.username]);
 
   // Handle Simulated Winnings
   useEffect(() => {
