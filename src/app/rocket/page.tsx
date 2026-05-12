@@ -55,12 +55,12 @@ const GlowingRocket = memo(({ isFlying, isCrashed }: { isFlying: boolean, isCras
         )}
         
         <svg 
-          width="120" 
-          height="180" 
+          width="140" 
+          height="200" 
           viewBox="0 0 120 180" 
           fill="none" 
           xmlns="http://www.w3.org/2000/svg" 
-          className={`drop-shadow-[0_0_25px_rgba(200,153,255,0.6)] transition-colors duration-200 ${isCrashed ? 'brightness-50 saturate-200' : 'brightness-100'}`}
+          className={`drop-shadow-[0_0_35px_rgba(200,153,255,0.7)] transition-colors duration-200 ${isCrashed ? 'brightness-75 saturate-200' : 'brightness-100'}`}
         >
           <defs>
             <linearGradient id="rocketBody" x1="60" y1="20" x2="60" y2="160" gradientUnits="userSpaceOnUse">
@@ -76,18 +76,18 @@ const GlowingRocket = memo(({ isFlying, isCrashed }: { isFlying: boolean, isCras
         </svg>
 
         {isFlying && !isCrashed && (
-          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-10 flex flex-col items-center">
-            <div className="w-8 h-20 bg-gradient-to-t from-transparent via-orange-500 to-yellow-300 blur-md rounded-full animate-pulse" />
+          <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-10 flex flex-col items-center">
+            <div className="w-10 h-24 bg-gradient-to-t from-transparent via-orange-500 to-yellow-300 blur-lg rounded-full animate-pulse" />
           </div>
         )}
         
         {isCrashed && (
            <motion.div 
-            animate={{ x: [-3, 3, -3], y: [-3, 3, -3] }}
+            animate={{ x: [-5, 5, -5], y: [-5, 5, -5] }}
             transition={{ repeat: Infinity, duration: 0.1 }}
             className="absolute -bottom-4 left-1/2 -translate-x-1/2"
            >
-             <Flame className="w-16 h-16 text-orange-500 fill-orange-500 blur-[2px]" />
+             <Flame className="w-20 h-20 text-orange-500 fill-orange-500 blur-[2px]" />
            </motion.div>
         )}
       </div>
@@ -338,23 +338,25 @@ export default function RocketPage() {
           <div className="glass-purple h-[500px] rounded-[40px] relative flex items-center justify-center border-2 border-primary/20 overflow-hidden shadow-2xl">
             <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '40px 40px' }} />
             
-            {/* المركز المشترك للصاروخ والمضاعف */}
-            <div className="relative flex items-center justify-center">
-              <GlowingRocket isFlying={gameState === 'flying'} isCrashed={gameState === 'crashed'} />
-
-              <AnimatePresence>
-                {gameState !== 'crashed' && (
-                  <motion.div 
-                    initial={{ opacity: 1, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute z-40 select-none text-white font-black text-7xl sm:text-9xl drop-shadow-[0_0_35px_rgba(255,255,255,0.8)] pointer-events-none whitespace-nowrap"
-                    style={{ textShadow: '0 0 50px rgba(255,255,255,0.6)' }}
-                  >
-                    {multiplier.toFixed(2)}<span className="text-3xl sm:text-5xl opacity-40 ml-1">x</span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+            <div className="relative flex items-center justify-center w-full h-full">
+              <div className="relative z-10 flex items-center justify-center">
+                <GlowingRocket isFlying={gameState === 'flying'} isCrashed={gameState === 'crashed'} />
+                
+                <AnimatePresence>
+                  {gameState !== 'crashed' && (
+                    <motion.div 
+                      key="active-multiplier"
+                      initial={{ opacity: 1, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute z-[60] select-none text-white font-black text-7xl sm:text-9xl drop-shadow-[0_0_40px_rgba(255,255,255,0.9)] pointer-events-none whitespace-nowrap"
+                      style={{ textShadow: '0 0 60px rgba(255,255,255,0.7)' }}
+                    >
+                      {multiplier.toFixed(2)}<span className="text-3xl sm:text-5xl opacity-40 ml-1">x</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
 
             <AnimatePresence>
@@ -363,7 +365,7 @@ export default function RocketPage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="absolute inset-0 bg-background/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60]"
+                  className="absolute inset-0 bg-background/60 backdrop-blur-sm flex flex-col items-center justify-center z-[70]"
                 >
                   <div className="text-sm font-black uppercase tracking-[0.4em] text-primary/70 mb-4">Rocket starts at</div>
                   <div className="flex items-center gap-4">
@@ -377,7 +379,7 @@ export default function RocketPage() {
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="absolute inset-0 bg-red-500/5 backdrop-blur-md flex flex-col items-center justify-center z-[60]"
+                  className="absolute inset-0 bg-red-500/5 backdrop-blur-md flex flex-col items-center justify-center z-[70]"
                 >
                   <div className="px-8 py-3 bg-red-600 text-white font-black rounded-2xl text-3xl shadow-[0_0_40px_rgba(220,38,38,0.6)] border-2 border-red-400/50">
                     {multiplier.toFixed(2)}x

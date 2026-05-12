@@ -8,12 +8,12 @@ export const SnowParticles = memo(function SnowParticles() {
 
   useEffect(() => {
     // 40 particles for optimal performance
-    const newParticles = Array.from({ length: 40 }).map((_, i) => ({
+    const newParticles = Array.from({ length: 45 }).map((_, i) => ({
       id: i,
       left: `${Math.random() * 100}%`,
-      delay: `${Math.random() * 12}s`,
-      size: `${Math.random() * 6 + 4}px`, // Increased size slightly
-      opacity: Math.random() * 0.6 + 0.3,
+      delay: `${Math.random() * 15}s`,
+      size: `${Math.random() * 8 + 6}px`, // Large particles
+      opacity: Math.random() * 0.7 + 0.3,
     }));
     setParticles(newParticles);
   }, []);
@@ -30,9 +30,9 @@ export const SnowParticles = memo(function SnowParticles() {
             height: p.size,
             opacity: p.opacity,
             animationDelay: p.delay,
-            filter: 'blur(1px)',
+            filter: 'blur(1.5px)',
             // Enhanced glow with primary theme color hint
-            boxShadow: '0 0 12px hsla(268, 100%, 80%, 0.6), 0 0 20px rgba(255, 255, 255, 0.4)',
+            boxShadow: '0 0 15px hsla(268, 100%, 80%, 0.7), 0 0 25px rgba(255, 255, 255, 0.5)',
             willChange: 'transform',
             transform: 'translateZ(0)' 
           }}
