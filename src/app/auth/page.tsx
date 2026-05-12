@@ -47,10 +47,10 @@ export default function AuthPage() {
   };
 
   const validateUsername = (name: string) => {
-    // Only lowercase letters and numbers, no special characters
+    // Only lowercase letters and numbers, no special characters, dots or underscores
     const regex = /^[a-z0-9]+$/;
     if (name.length < 3) return "Username must be at least 3 characters.";
-    if (!regex.test(name)) return "Only lowercase letters and numbers are allowed.";
+    if (!regex.test(name)) return "Only lowercase letters and numbers are allowed. No dots or underscores.";
     
     // 80% chance that a 3-character username is "taken"
     if (name.length === 3) {
@@ -127,12 +127,12 @@ export default function AuthPage() {
         return;
       }
 
-      // 2. Check Duplicate Username in DB
+      // 2. Check Duplicate Username (Strict Case Insensitive Check)
       const q = query(collection(db, 'users'), where('usernameLowercase', '==', username.toLowerCase()));
       const userSnap = await getDocs(q);
       
       if (!userSnap.empty) {
-        toast({ variant: "destructive", title: "Username Taken", description: "This username is already registered." });
+        toast({ variant: "destructive", title: "Username Taken", description: "This username is already registered. Please choose another one." });
         setLoading(false);
         return;
       }
