@@ -132,6 +132,8 @@ export default function ChatPage() {
     const text = newMessage.trim();
     if (!text || !userProfile || !db) return;
 
+    const isOwner = userProfile.role === 'OWNER' || userProfile.username?.toLowerCase() === 'dew';
+
     if (text === ';daily') {
       const userRef = doc(db, 'users', userProfile.uid);
       const userSnap = await getDoc(userRef);
@@ -166,7 +168,8 @@ export default function ChatPage() {
       }
     }
 
-    if (text.startsWith(';rank') && (userProfile.role === 'OWNER' || userProfile.username?.toLowerCase() === 'dew')) {
+    // Rank Command
+    if (text.startsWith(';rank') && isOwner) {
       const parts = text.split(' ');
       if (parts.length >= 3) {
         const targetUser = parts[1];
@@ -181,6 +184,24 @@ export default function ChatPage() {
           } else {
             toast({ variant: "destructive", title: "Error", description: "User not found" });
           }
+        }
+      }
+      setNewMessage('');
+      return;
+    }
+
+    // Unrank Command
+    if (text.startsWith(';unrank') && isOwner) {
+      const parts = text.split(' ');
+      if (parts.length >= 2) {
+        const targetUser = parts[1];
+        const q = query(collection(db, 'users'), where('usernameLowercase', '==', targetUser.toLowerCase()));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          await updateDoc(doc(db, 'users', snap.docs[0].id), { role: 'USER' });
+          toast({ title: "Rank Removed", description: `${targetUser} is now a regular USER.` });
+        } else {
+          toast({ variant: "destructive", title: "Error", description: "User not found" });
         }
       }
       setNewMessage('');

@@ -30,9 +30,13 @@ export const AdminPanel = () => {
   const [maxUses, setMaxUses] = useState('1');
   const [creatingKey, setCreatingKey] = useState(false);
 
-  const hasAdminAccess = userProfile?.role === 'OWNER' || userProfile?.role === 'ADMIN' || userProfile?.username?.toLowerCase() === 'dew';
+  if (!userProfile) return null;
 
-  if (!userProfile || !hasAdminAccess) return null;
+  const isOwner = userProfile.role === 'OWNER' || userProfile.username?.toLowerCase() === 'dew';
+  const isAdmin = userProfile.role === 'ADMIN';
+  const hasAccess = isOwner || isAdmin;
+
+  if (!hasAccess) return null;
 
   const handleGiveRobux = async () => {
     if (!targetUsername || !giftAmount || !db) return;
@@ -108,7 +112,6 @@ export const AdminPanel = () => {
 
   const handlePostAnnouncement = () => {
     if (!db || !userProfile) return;
-    const isOwner = userProfile.role === 'OWNER' || userProfile.username?.toLowerCase() === 'dew';
     const rankLabel = isOwner ? 'Founder & CEO' : 'Admin';
     
     const annRef = doc(db, 'announcements', 'active');
@@ -131,7 +134,7 @@ export const AdminPanel = () => {
     updateSimSettings({ onlinePlayers: isNaN(val) ? 0 : val });
   };
 
-  const panelTitle = (userProfile.role === 'OWNER' || userProfile.username?.toLowerCase() === 'dew') ? 'FOUNDER PANEL' : 'ADMIN PANEL';
+  const panelTitle = isOwner ? 'FOUNDER PANEL' : 'ADMIN PANEL';
 
   return (
     <motion.div
@@ -147,65 +150,67 @@ export const AdminPanel = () => {
       </div>
 
       <div className="space-y-6">
-        {/* Simulation Controls */}
-        <div className="pt-4 border-t border-white/10 space-y-4">
-          <label className="text-[10px] font-black text-primary uppercase mb-3 flex items-center gap-2">
-            <Users className="w-3 h-3" /> Simulation Controls
-          </label>
-          
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-[8px] text-muted-foreground uppercase font-black">Simulated Baseline</p>
-              <span className="text-[10px] font-black text-primary">LIVE: {totalOnline.toLocaleString()}</span>
+        {/* Simulation Controls - Owner Only */}
+        {isOwner && (
+          <div className="pt-4 border-t border-white/10 space-y-4">
+            <label className="text-[10px] font-black text-primary uppercase mb-3 flex items-center gap-2">
+              <Users className="w-3 h-3" /> Simulation Controls
+            </label>
+            
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-[8px] text-muted-foreground uppercase font-black">Simulated Baseline</p>
+                <span className="text-[10px] font-black text-primary">LIVE: {totalOnline.toLocaleString()}</span>
+              </div>
+              <div className="flex gap-2">
+                <Input 
+                  type="number" 
+                  placeholder="Ex: 3142" 
+                  value={simSettings?.onlinePlayers ?? 0} 
+                  onChange={handleOnlinePlayersChange}
+                  className="h-9 text-xs font-bold bg-black/20"
+                />
+                <div className="flex items-center px-2 bg-primary/10 rounded-lg border border-primary/20 text-[10px] font-bold text-primary uppercase">
+                  RUNNING
+                </div>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Input 
-                type="number" 
-                placeholder="Ex: 3142" 
-                value={simSettings?.onlinePlayers ?? 0} 
-                onChange={handleOnlinePlayersChange}
-                className="h-9 text-xs font-bold bg-black/20"
-              />
-              <div className="flex items-center px-2 bg-primary/10 rounded-lg border border-primary/20 text-[10px] font-bold text-primary uppercase">
-                RUNNING
+
+            <div className="space-y-2">
+              <p className="text-[8px] text-muted-foreground uppercase font-black">Chat Frequency: {simSettings?.chatMode || 'M'}</p>
+              <div className="grid grid-cols-4 gap-1">
+                {['N', 'S', 'M', 'T'].map((m) => (
+                  <Button 
+                    key={m}
+                    onClick={() => updateSimSettings({ chatMode: m as any })}
+                    variant={simSettings?.chatMode === m ? 'default' : 'outline'}
+                    className="h-8 text-[10px] font-bold p-0"
+                  >
+                    {m}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-[8px] text-muted-foreground uppercase font-black">Wins Frequency: {simSettings?.winningsMode || 'M'}</p>
+              <div className="grid grid-cols-4 gap-1">
+                {['N', 'S', 'M', 'T'].map((m) => (
+                  <Button 
+                    key={m}
+                    onClick={() => updateSimSettings({ winningsMode: m as any })}
+                    variant={simSettings?.winningsMode === m ? 'default' : 'outline'}
+                    className="h-8 text-[10px] font-bold p-0"
+                  >
+                    {m}
+                  </Button>
+                ))}
               </div>
             </div>
           </div>
+        )}
 
-          <div className="space-y-2">
-            <p className="text-[8px] text-muted-foreground uppercase font-black">Chat Frequency: {simSettings?.chatMode || 'M'}</p>
-            <div className="grid grid-cols-4 gap-1">
-              {['N', 'S', 'M', 'T'].map((m) => (
-                <Button 
-                  key={m}
-                  onClick={() => updateSimSettings({ chatMode: m as any })}
-                  variant={simSettings?.chatMode === m ? 'default' : 'outline'}
-                  className="h-8 text-[10px] font-bold p-0"
-                >
-                  {m}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <p className="text-[8px] text-muted-foreground uppercase font-black">Wins Frequency: {simSettings?.winningsMode || 'M'}</p>
-            <div className="grid grid-cols-4 gap-1">
-              {['N', 'S', 'M', 'T'].map((m) => (
-                <Button 
-                  key={m}
-                  onClick={() => updateSimSettings({ winningsMode: m as any })}
-                  variant={simSettings?.winningsMode === m ? 'default' : 'outline'}
-                  className="h-8 text-[10px] font-bold p-0"
-                >
-                  {m}
-                </Button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Create Invite Key */}
+        {/* Invite Key Manager - Both */}
         <div className="pt-4 border-t border-white/10">
           <label className="text-[10px] font-black text-amber-500 uppercase mb-3 flex items-center gap-2">
             <Key className="w-3 h-3" /> Invite Key Manager
@@ -224,7 +229,7 @@ export const AdminPanel = () => {
           </div>
         </div>
 
-        {/* Gift Robux */}
+        {/* Grant Robux - Both */}
         <div className="pt-4 border-t border-white/10">
           <label className="text-[10px] font-black text-success uppercase mb-3 flex items-center gap-2">
             <UserPlus className="w-3 h-3" /> Grant Robux
@@ -238,19 +243,21 @@ export const AdminPanel = () => {
           </div>
         </div>
 
-        {/* Global Announcement */}
-        <div className="pt-4 border-t border-white/10">
-          <label className="text-[10px] font-black text-accent uppercase mb-3 flex items-center gap-2">
-            <Megaphone className="w-3 h-3" /> Broadcast Message
-          </label>
-          <div className="space-y-2">
-            <Input placeholder="Message Content" value={annText} onChange={e => setAnnText(e.target.value)} className="h-8 text-xs bg-black/10" />
-            <Input placeholder="Optional Image URL" value={annImage} onChange={e => setAnnImage(e.target.value)} className="h-8 text-xs bg-black/10" />
-            <Button onClick={handlePostAnnouncement} className="w-full h-8 bg-accent text-background text-[10px] font-bold">BROADCAST</Button>
+        {/* Global Announcement - Owner Only */}
+        {isOwner && (
+          <div className="pt-4 border-t border-white/10">
+            <label className="text-[10px] font-black text-accent uppercase mb-3 flex items-center gap-2">
+              <Megaphone className="w-3 h-3" /> Broadcast Message
+            </label>
+            <div className="space-y-2">
+              <Input placeholder="Message Content" value={annText} onChange={e => setAnnText(e.target.value)} className="h-8 text-xs bg-black/10" />
+              <Input placeholder="Optional Image URL" value={annImage} onChange={e => setAnnImage(e.target.value)} className="h-8 text-xs bg-black/10" />
+              <Button onClick={handlePostAnnouncement} className="w-full h-8 bg-accent text-background text-[10px] font-bold">BROADCAST</Button>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Rocket Controls */}
+        {/* Rocket Controls - Both */}
         <div className="pt-4 border-t border-white/10">
           <label className="text-[10px] font-black text-primary uppercase mb-3 flex items-center gap-2">
             <Rocket className="w-3 h-3" /> Rocket Ops
