@@ -33,7 +33,7 @@ export const LastWinnings = () => {
 
   const winsQuery = useMemo(() => {
     if (!db) return null;
-    return query(collection(db, 'real_winnings'), orderBy('createdAt', 'desc'), limit(5));
+    return query(collection(db, 'real_winnings'), orderBy('createdAt', 'desc'), limit(10));
   }, [db]);
 
   const { data: realWins } = useCollection(winsQuery) as any;
@@ -41,37 +41,36 @@ export const LastWinnings = () => {
   // Handle Real Winnings
   useEffect(() => {
     if (realWins && realWins.length > 0) {
-      // If it's the first time loading, don't show the user's own last win
+      // If it's the first time loading, we mark historical wins as processed 
+      // so the current user doesn't see their own old wins immediately.
       if (isInitialLoadRef.current) {
         realWins.forEach((win: any) => {
-          // If the win belongs to the current user during initial load, mark it as processed
-          if (win.username === userProfile?.username) {
-            processedRealWinsRef.current.add(win.id);
-          }
+          // Mark all existing wins as processed on load
+          processedRealWinsRef.current.add(win.id);
         });
         isInitialLoadRef.current = false;
         return;
       }
 
-      const latestReal = realWins[0];
-      const winId = latestReal.id;
-      
-      if (!processedRealWinsRef.current.has(winId)) {
-        processedRealWinsRef.current.add(winId);
-        
-        const newWin: Winning = {
-          id: winId,
-          user: latestReal.username,
-          avatar: latestReal.avatarUrl || `https://picsum.photos/seed/${latestReal.username}/40/40`,
-          game: latestReal.game as any,
-          amount: latestReal.amount,
-          isReal: true
-        };
-        
-        setWinnings(prev => [newWin, ...prev].slice(0, 15));
-      }
+      // Check for new real wins that haven't been processed
+      realWins.slice().reverse().forEach((win: any) => {
+        if (!processedRealWinsRef.current.has(win.id)) {
+          processedRealWinsRef.current.add(win.id);
+          
+          const newWin: Winning = {
+            id: win.id,
+            user: win.username,
+            avatar: win.avatarUrl || `https://picsum.photos/seed/${win.username}/40/40`,
+            game: win.game as any,
+            amount: win.amount,
+            isReal: true
+          };
+          
+          setWinnings(prev => [newWin, ...prev].slice(0, 15));
+        }
+      });
     }
-  }, [realWins, userProfile?.username]);
+  }, [realWins]);
 
   // Handle Simulated Winnings
   useEffect(() => {

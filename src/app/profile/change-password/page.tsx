@@ -3,11 +3,10 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Lock, ShieldCheck, Loader2, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Lock, ShieldCheck, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth } from '@/firebase';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -28,41 +27,60 @@ export default function ChangePasswordPage() {
   const handleUpdate = async () => {
     if (!auth.currentUser || !userProfile) return;
 
+    // 1. Basic Validations
     if (!currentPassword || !newPassword || !confirmPassword) {
-      toast({ variant: "destructive", title: "Error", description: "All fields are required." });
+      toast({ variant: "destructive", title: "Error", description: "Please fill in all fields." });
       return;
     }
 
     if (newPassword.length < 8) {
-      toast({ variant: "destructive", title: "Error", description: "New password must be at least 8 characters." });
+      toast({ variant: "destructive", title: "Weak Password", description: "Password must be at least 8 characters long." });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      toast({ variant: "destructive", title: "Error", description: "New passwords do not match." });
+      toast({ variant: "destructive", title: "Mismatch", description: "New passwords do not match." });
       return;
     }
 
     setLoading(true);
     try {
-      // 1. Re-authenticate
+      // 2. Re-authenticate user to verify current password
       const credential = EmailAuthProvider.credential(userProfile.internalEmail, currentPassword);
       await reauthenticateWithCredential(auth.currentUser, credential);
 
-      // 2. Update Password
+      // 3. Update to new password
       await updatePassword(auth.currentUser, newPassword);
 
+      // 4. Success feedback
       toast({
-        title: "Success!",
-        description: "Your password has been updated safely.",
+        title: (
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-success" />
+            <span>Successfully Password Changed</span>
+          </div>
+        ) as any,
+        description: "Your account is now more secure.",
       });
-      router.push('/profile');
+
+      setTimeout(() => {
+        router.push('/profile');
+      }, 1500);
+
     } catch (error: any) {
       console.error(error);
+      let errorMsg = "Failed to update password. Check your current password.";
+      if (error.code === 'auth/wrong-password') errorMsg = "The current password you entered is incorrect.";
+      
       toast({
         variant: "destructive",
-        title: "Authentication Failed",
-        description: "Current password is incorrect.",
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-5 h-5" />
+            <span>Authentication Failed</span>
+          </div>
+        ) as any,
+        description: errorMsg,
       });
     } finally {
       setLoading(false);
@@ -79,16 +97,18 @@ export default function ChangePasswordPage() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-purple p-8 rounded-[32px] border-2 border-primary/20 space-y-8 shadow-2xl"
+        className="glass-purple p-8 rounded-[32px] border-2 border-primary/20 space-y-8 shadow-2xl relative overflow-hidden"
       >
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+        
         <div className="text-center space-y-2">
           <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center border-2 border-primary/20 mx-auto mb-4">
             <Lock className="w-8 h-8 text-primary" />
           </div>
           <h1 className="font-headline text-2xl font-black headline-gradient uppercase">
-            {lang === 'EN' ? 'Change Password' : 'تغيير كلمة السر'}
+            {lang === 'EN' ? 'Secure Account' : 'تأمين الحساب'}
           </h1>
-          <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Secure your account</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-bold">Update your access key</p>
         </div>
 
         <div className="space-y-4">
@@ -99,7 +119,7 @@ export default function ChangePasswordPage() {
               placeholder="••••••••" 
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="bg-black/20 border-white/10 h-12 rounded-xl focus:border-primary/50"
+              className="bg-black/20 border-white/10 h-12 rounded-xl focus:border-primary/50 text-white"
             />
           </div>
 
@@ -110,7 +130,7 @@ export default function ChangePasswordPage() {
               placeholder="••••••••" 
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="bg-black/20 border-primary/10 h-12 rounded-xl focus:border-primary/50"
+              className="bg-black/20 border-primary/10 h-12 rounded-xl focus:border-primary/50 text-white"
             />
           </div>
 
@@ -121,22 +141,22 @@ export default function ChangePasswordPage() {
               placeholder="••••••••" 
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="bg-black/20 border-primary/10 h-12 rounded-xl focus:border-primary/50"
+              className="bg-black/20 border-primary/10 h-12 rounded-xl focus:border-primary/50 text-white"
             />
           </div>
 
           <Button 
             onClick={handleUpdate} 
             disabled={loading}
-            className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-black rounded-xl shadow-[0_0_20px_rgba(200,153,255,0.3)] mt-4"
+            className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-black rounded-xl shadow-[0_0_20px_rgba(200,153,255,0.3)] mt-4 transition-all active:scale-[0.98]"
           >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (lang === 'EN' ? 'UPDATE PASSWORD' : 'تحديث كلمة السر')}
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (lang === 'EN' ? 'CHANGE PASSWORD' : 'تغيير كلمة السر')}
           </Button>
         </div>
 
-        <div className="flex items-center justify-center gap-2 text-[9px] font-bold text-muted-foreground uppercase pt-2">
+        <div className="flex items-center justify-center gap-2 text-[9px] font-black text-muted-foreground uppercase pt-2 opacity-50">
           <ShieldCheck className="w-3 h-3 text-success" />
-          <span>End-to-end encrypted update</span>
+          <span>Encrypted Security Update</span>
         </div>
       </motion.div>
     </div>
