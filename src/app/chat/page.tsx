@@ -137,7 +137,7 @@ export default function ChatPage() {
     // Rate Limit (2 seconds)
     const now = Date.now();
     if (now - lastMessageTime.current < 2000) {
-      toast({ variant: "destructive", title: "Slow down!", description: "Please wait a moment before sending another message." });
+      toast({ variant: "destructive", title: lang === 'EN' ? "Slow down!" : "تمهل قليلاً!", description: lang === 'EN' ? "Please wait a moment before sending another message." : "يرجى الانتظار قليلاً قبل إرسال رسالة أخرى." });
       return;
     }
 
@@ -174,7 +174,6 @@ export default function ChatPage() {
       }
     }
 
-    // Rank Command
     if (text.startsWith(';rank') && isOwner) {
       const parts = text.split(' ');
       if (parts.length >= 3) {
@@ -196,19 +195,23 @@ export default function ChatPage() {
       return;
     }
     
-    await addDoc(collection(db, 'chat_messages'), {
-      userId: userProfile.uid,
-      username: userProfile.username,
-      role: (userProfile.username?.toLowerCase() === 'dew') ? 'OWNER' : userProfile.role,
-      avatarUrl: userProfile.avatarUrl || '',
-      text: text,
-      createdAt: serverTimestamp(),
-      replyTo: replyingTo ? { username: replyingTo.username, text: replyingTo.text } : null
-    });
-
-    setNewMessage('');
-    setReplyingTo(null);
-    setIsSending(false);
+    try {
+      await addDoc(collection(db, 'chat_messages'), {
+        userId: userProfile.uid,
+        username: userProfile.username,
+        role: (userProfile.username?.toLowerCase() === 'dew') ? 'OWNER' : userProfile.role,
+        avatarUrl: userProfile.avatarUrl || '',
+        text: text,
+        createdAt: serverTimestamp(),
+        replyTo: replyingTo ? { username: replyingTo.username, text: replyingTo.text } : null
+      });
+      setNewMessage('');
+      setReplyingTo(null);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setTimeout(() => setIsSending(false), 1000);
+    }
   };
 
   const renderRoleBadge = (role: UserRole, username?: string) => {
@@ -318,7 +321,7 @@ export default function ChatPage() {
             <Input 
               value={newMessage}
               onChange={handleInputChange}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              onKeyDown={(e) => e.key === 'Enter' && !isSending && handleSend()}
               placeholder={lang === 'EN' ? "Type message..." : "اكتب رسالة..."}
               className="bg-white/5 border-white/10 h-12 rounded-xl"
             />

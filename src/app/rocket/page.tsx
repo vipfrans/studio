@@ -139,7 +139,6 @@ export default function RocketPage() {
     } catch (e) {}
   };
 
-  // Heartbeat Driver: Checks and transitions state even if nobody is "driving"
   useEffect(() => {
     if (!gameData || !db) return;
 
@@ -150,7 +149,7 @@ export default function RocketPage() {
 
       if (gameData.status === 'waiting' && elapsed > 6000) {
         await handleStartFlyingSync();
-      } else if (gameData.status === 'crashed' && elapsed > 4000) {
+      } else if (gameData.status === 'crashed' && elapsed > 3000) {
         await handleWaitCycleSync();
       } else if (!gameData.status || elapsed > 600000) {
         await handleWaitCycleSync();
@@ -160,7 +159,6 @@ export default function RocketPage() {
     return () => clearInterval(heartbeat);
   }, [gameData, db]);
 
-  // Visual Multiplier / Countdown Loop
   useEffect(() => {
     if (!gameData) return;
 
@@ -173,7 +171,6 @@ export default function RocketPage() {
         
         setMultiplier(roundedMult);
 
-        // Client-side predictive crash for responsiveness
         if (roundedMult >= (gameData.crashMultiplier || 1.1)) {
           handleCrashSync(roundedMult);
           clearInterval(interval);
@@ -190,6 +187,10 @@ export default function RocketPage() {
       }, 100);
       return () => clearInterval(interval);
     }
+    
+    if (gameData.status === 'crashed') {
+      setMultiplier(gameData.crashMultiplier || 1.00);
+    }
   }, [gameData]);
 
   const isUserInRound = useMemo(() => {
@@ -201,7 +202,7 @@ export default function RocketPage() {
   }, [userProfile?.activeRocketBet?.cashedOut]);
 
   const handlePlaceBet = async () => {
-    if (!userProfile || gameData?.status !== 'waiting' || isUserInRound || balance < betAmount) return;
+    if (!userProfile || (gameData?.status !== 'waiting' && gameData?.status !== 'crashed') || isUserInRound || balance < betAmount) return;
     
     await removeRobux(betAmount);
     await updateDoc(doc(db, 'users', userProfile.uid), {
@@ -215,7 +216,7 @@ export default function RocketPage() {
   };
 
   const handleCancelBet = async () => {
-    if (!userProfile || !isUserInRound || gameData?.status !== 'waiting') return;
+    if (!userProfile || !isUserInRound || (gameData?.status !== 'waiting' && gameData?.status !== 'crashed')) return;
     const betVal = userProfile.activeRocketBet.amount;
     await cancelRocketBet(betVal);
   };
@@ -232,7 +233,6 @@ export default function RocketPage() {
     });
   };
 
-  // Bot Simulations
   useEffect(() => {
     if (!gameData?.roundId) return;
     const seed = gameData.roundId.split('').reduce((a: number, b: string) => (a + b.charCodeAt(0)), 0);
@@ -282,7 +282,7 @@ export default function RocketPage() {
   const renderButton = () => {
     if (!gameData) return <Button disabled className="w-full h-16 rounded-2xl bg-primary/20">INITIALIZING...</Button>;
 
-    if (gameData.status === 'waiting') {
+    if (gameData.status === 'waiting' || gameData.status === 'crashed') {
       if (isUserInRound) {
         return (
           <Button 
@@ -319,18 +319,6 @@ export default function RocketPage() {
         );
       }
       return <Button disabled className="w-full h-16 rounded-2xl bg-white/5 text-muted-foreground font-black text-xl uppercase border border-white/10">Game Started</Button>;
-    }
-
-    if (gameData.status === 'crashed') {
-      return (
-        <Button 
-          onClick={handlePlaceBet}
-          disabled={balance < betAmount}
-          className="w-full h-16 bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xl rounded-2xl"
-        >
-          PLACE BET
-        </Button>
-      );
     }
 
     return null;
