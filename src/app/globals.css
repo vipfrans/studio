@@ -35,17 +35,21 @@
   }
   body {
     @apply bg-background text-foreground font-body;
-    background-image: radial-gradient(circle at 50% -20%, hsl(var(--primary) / 0.15), transparent 70%);
+    background-image: radial-gradient(circle at 50% -20%, hsl(var(--primary) / 0.12), transparent 75%);
     background-attachment: fixed;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
   }
 }
 
 .glass {
-  @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl;
+  @apply bg-white/5 border border-white/10 shadow-xl;
+  backdrop-filter: blur(8px); /* تخفيف الـ blur لتحسين الأداء */
 }
 
 .glass-purple {
-  @apply bg-primary/5 backdrop-blur-xl border border-primary/20 shadow-[0_0_20px_rgba(200,153,255,0.1)];
+  @apply bg-primary/5 border border-primary/20 shadow-lg;
+  backdrop-filter: blur(10px);
 }
 
 .text-neon-green {
@@ -61,13 +65,32 @@
   @apply bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent;
 }
 
+/* تحسين الأنيميشن عبر الهاردوير */
+@keyframes snow-fall {
+  0% { transform: translate3d(0, -10vh, 0); }
+  100% { transform: translate3d(20px, 110vh, 0); }
+}
+
+.animate-snow-fall {
+  animation: snow-fall 10s linear infinite;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 ::-webkit-scrollbar-track {
   @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
   @apply bg-primary/20 rounded-full hover:bg-primary/40 transition-colors;
+}
+
+/* منع تحركات Framer Motion من تعطيل التمرير */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

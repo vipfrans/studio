@@ -1,17 +1,18 @@
 
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, memo } from 'react';
 
-export const SnowParticles = () => {
+export const SnowParticles = memo(function SnowParticles() {
   const [particles, setParticles] = useState<Array<{ id: number; left: string; delay: string; size: string; opacity: number }>>([]);
 
   useEffect(() => {
-    const newParticles = Array.from({ length: 60 }).map((_, i) => ({
+    // 40 particles for optimal performance
+    const newParticles = Array.from({ length: 40 }).map((_, i) => ({
       id: i,
       left: `${Math.random() * 100}%`,
       delay: `${Math.random() * 12}s`,
-      size: `${Math.random() * 6 + 4}px`, // تكبير الحجم قليلاً
+      size: `${Math.random() * 6 + 4}px`, // Increased size slightly
       opacity: Math.random() * 0.6 + 0.3,
     }));
     setParticles(newParticles);
@@ -29,11 +30,14 @@ export const SnowParticles = () => {
             height: p.size,
             opacity: p.opacity,
             animationDelay: p.delay,
-            filter: 'blur(1px) drop-shadow(0 0 8px rgba(200, 153, 255, 0.8))', // إضافة توهج مكثف
-            boxShadow: '0 0 12px rgba(255, 255, 255, 0.6)'
+            filter: 'blur(1px)',
+            // Enhanced glow with primary theme color hint
+            boxShadow: '0 0 12px hsla(268, 100%, 80%, 0.6), 0 0 20px rgba(255, 255, 255, 0.4)',
+            willChange: 'transform',
+            transform: 'translateZ(0)' 
           }}
         />
       ))}
     </div>
   );
-};
+});
