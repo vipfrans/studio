@@ -58,13 +58,6 @@ export default function AuthPage() {
     const regex = /^[a-z0-9]+$/;
     if (name.length < 3) return "Username must be at least 3 characters.";
     if (!regex.test(name)) return "Only lowercase letters and numbers are allowed.";
-    
-    // Rare 3-letter username rarity
-    if (name.length === 3) {
-      const isTaken = Math.random() < 0.8;
-      if (isTaken) return "This rare 3-letter username is already taken.";
-    }
-    
     return null;
   };
 
