@@ -74,7 +74,7 @@ export default function AuthPage() {
       const snap = await getDocs(q);
       
       if (snap.empty) {
-        toast({ variant: "destructive", title: "User Not Found", description: "No account exists with this username." });
+        toast({ variant: "destructive", title: "User Not Found", description: "No account exists with this username. Please Signup once if you haven't." });
         setLoading(false);
         return;
       }
@@ -131,7 +131,7 @@ export default function AuthPage() {
       const userSnap = await getDocs(q);
       
       if (!userSnap.empty) {
-        toast({ variant: "destructive", title: "Username Taken", description: "This username is already registered." });
+        toast({ variant: "destructive", title: "Username Taken", description: "This username is already registered. Try logging in." });
         setLoading(false);
         return;
       }
