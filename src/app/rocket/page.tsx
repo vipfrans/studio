@@ -3,13 +3,13 @@
 
 import React, { useState, useEffect, useRef, memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Rocket as RocketIcon, ArrowLeft, Users, Flame, XCircle } from 'lucide-react';
+import { Rocket as RocketIcon, ArrowLeft, Users, Flame } from 'lucide-react';
 import Link from 'next/link';
 import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useFirestore, useDoc } from '@/firebase';
-import { doc, updateDoc, serverTimestamp, arrayUnion, Timestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
 
 const REALISTIC_NAMES = ['Frosty_Blox', 'Lumine_Dev', 'VoidX_Gamer', 'Ghost_Rider', 'Stellar_YT', 'Valk_Queen', 'Neon_Player', 'Rex_Bet', 'Kone_Pro', 'Silent_Ace', 'Storm_Rider', 'Pixel_Warrior', 'Cyber_Punk', 'Robo_Gamer', 'Elite_King', 'Vortex', 'Pulse', 'Shadow', 'Azure', 'Cinder', 'Mystic', 'Blaze', 'Glitch', 'Static'];
 
@@ -103,7 +103,7 @@ export default function RocketPage() {
   const gameDocRef = useMemo(() => doc(db, 'settings', 'rocket_game'), [db]);
   const { data: gameData } = useDoc(gameDocRef) as any;
 
-  // Sync Logics
+  // Sync Logic
   const handleCrashSync = async (finalMult: number) => {
     if (!db || gameData?.status !== 'flying') return;
     try {
@@ -195,7 +195,6 @@ export default function RocketPage() {
     }
   }, [gameData]);
 
-  // User States
   const userBetInfo = userProfile?.activeRocketBet;
   const isQueued = userBetInfo?.roundId === 'queued';
   const isUserInCurrentRound = userBetInfo?.roundId === gameData?.roundId;
@@ -203,7 +202,6 @@ export default function RocketPage() {
 
   const handlePlaceBet = async () => {
     if (!userProfile || isUserInCurrentRound || isQueued || balance < betAmount) return;
-    
     const targetRoundId = (gameData?.status === 'flying' || gameData?.status === 'crashed') ? 'queued' : gameData.roundId;
 
     await removeRobux(betAmount);
@@ -220,7 +218,6 @@ export default function RocketPage() {
   const handleCancelBet = async () => {
     if (!userProfile || (!isUserInCurrentRound && !isQueued)) return;
     if (isUserInCurrentRound && gameData?.status === 'flying') return;
-
     const betVal = userBetInfo.amount;
     await cancelRocketBet(betVal);
   };
@@ -237,7 +234,6 @@ export default function RocketPage() {
     });
   };
 
-  // Bot Management - More Realistic Logic
   useEffect(() => {
     if (!gameData?.roundId) return;
     const seed = gameData.roundId.split('').reduce((a: number, b: string) => (a + b.charCodeAt(0)), 0);
@@ -253,12 +249,11 @@ export default function RocketPage() {
       const botSeed = seed + idx;
       const bet = (botSeed % 500) + 50;
       
-      // Better distribution of target multipliers
       let targetMult = 1.1;
       const rand = Math.random();
-      if (rand < 0.4) targetMult = 1.1 + (Math.random() * 0.9); // 40% conservative (1.1 - 2.0)
-      else if (rand < 0.8) targetMult = 2.0 + (Math.random() * 3.0); // 40% moderate (2.0 - 5.0)
-      else targetMult = 5.0 + (Math.random() * 10.0); // 20% high risk (5.0 - 15.0)
+      if (rand < 0.4) targetMult = 1.1 + (Math.random() * 0.9);
+      else if (rand < 0.8) targetMult = 2.0 + (Math.random() * 3.0);
+      else targetMult = 5.0 + (Math.random() * 10.0);
       
       return {
         user: name,
@@ -363,7 +358,6 @@ export default function RocketPage() {
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-primary font-black text-lg">R$</span>
                 </div>
               </div>
-
               {renderButton()}
             </div>
 
