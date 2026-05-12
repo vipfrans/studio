@@ -21,7 +21,7 @@ interface PlayerBet {
 }
 
 export default function RocketPage() {
-  const { balance, removeRobux, addRobux, recordLoss, nextCrashMultiplier, setNextCrashMultiplier, userProfile, lang, simSettings, totalOnline } = useRobux();
+  const { balance, removeRobux, addRobux, recordLoss, nextCrashMultiplier, setNextCrashMultiplier, userProfile, lang, simSettings, totalOnline, forceCrashTrigger } = useRobux();
   const [betAmount, setBetAmount] = useState(100);
   const [multiplier, setMultiplier] = useState(1.00);
   const [gameState, setGameState] = useState<'waiting' | 'flying' | 'crashed'>('waiting');
@@ -39,6 +39,13 @@ export default function RocketPage() {
     if (gameIntervalRef.current) clearInterval(gameIntervalRef.current);
     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
   };
+
+  // Watch for immediate crash trigger from Admin
+  useEffect(() => {
+    if (gameState === 'flying' && forceCrashTrigger > 0) {
+      crashGame();
+    }
+  }, [forceCrashTrigger]);
 
   useEffect(() => {
     initWaitingPhase();
@@ -65,9 +72,7 @@ export default function RocketPage() {
       });
     }, 1000);
 
-    // Dynamic Bot Count - Balanced with total online count
-    // If totalOnline is high, we can have more bots.
-    const onlineBase = Math.floor(totalOnline / 200); // 1 extra bot per 200 online
+    const onlineBase = Math.floor(totalOnline / 200);
     const min = (simSettings.minRocketBots || 4) + onlineBase;
     const max = (simSettings.maxRocketBots || 14) + (onlineBase * 2);
     
@@ -98,9 +103,15 @@ export default function RocketPage() {
         return p;
       }));
 
-      if (nextCrashMultiplier && currentMult >= nextCrashMultiplier) {
+      // Check if Admin set a limit
+      if (nextCrashMultiplier !== null && currentMult >= nextCrashMultiplier) {
         crashGame();
-      } else if (Math.random() < 0.005 + (multiplierRef.current * 0.003)) {
+        return;
+      }
+
+      // Natural crash logic - reduced if an admin limit is set to avoid random premature crashes
+      const randomThreshold = nextCrashMultiplier ? 0.002 : 0.005;
+      if (Math.random() < randomThreshold + (multiplierRef.current * 0.003)) {
         crashGame();
       }
     }, 100);
@@ -109,7 +120,7 @@ export default function RocketPage() {
   const crashGame = () => {
     stopAllIntervals();
     setGameState('crashed');
-    setNextCrashMultiplier(null);
+    setNextCrashMultiplier(null); // Reset the admin multiplier after crash
     const finalMult = Number(multiplierRef.current.toFixed(2));
     setHistory(prev => [finalMult, ...prev].slice(0, 10));
 
@@ -158,24 +169,37 @@ export default function RocketPage() {
           </h2>
           
           <div className="space-y-4">
-            <Input type="number" value={betAmount} onChange={e => setBetAmount(Number(e.target.value))} className="bg-black/20" disabled={isUserInRound} />
-            <Button onClick={gameState === 'waiting' ? handlePlaceBet : handleUserCashOut} disabled={(gameState === 'waiting' && isUserInRound) || (gameState === 'flying' && hasCashedOut) || gameState === 'crashed'} className="w-full h-14 font-black">
+            <div className="relative">
+              <Input type="number" value={betAmount} onChange={e => setBetAmount(Number(e.target.value))} className="bg-black/20 h-12 font-bold pl-10" disabled={isUserInRound} />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary font-bold">R$</span>
+            </div>
+            <Button onClick={gameState === 'waiting' ? handlePlaceBet : handleUserCashOut} disabled={(gameState === 'waiting' && isUserInRound) || (gameState === 'flying' && hasCashedOut) || gameState === 'crashed'} className={`w-full h-14 font-black text-lg transition-all ${gameState === 'flying' && !hasCashedOut && isUserInRound ? 'bg-success hover:bg-success/90 shadow-[0_0_20px_rgba(115,255,115,0.4)]' : ''}`}>
               {gameState === 'waiting' ? (isUserInRound ? 'WAITING...' : 'PLACE BET') : (hasCashedOut ? 'CASHED OUT' : 'CASH OUT')}
             </Button>
           </div>
 
           <div className="pt-6 border-t border-white/5 space-y-2">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase mb-4">Players ({activeBets.length})</p>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Active Players</p>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 rounded-full border border-primary/20">
+                <Users className="w-2.5 h-2.5 text-primary" />
+                <span className="text-[9px] font-black text-primary">{activeBets.length}</span>
+              </div>
+            </div>
             <div className="space-y-2 max-h-[400px] overflow-y-auto no-scrollbar">
               {activeBets.map((player, i) => (
-                <div key={i} className={`flex items-center justify-between p-2 rounded-xl ${player.user === userProfile?.username ? 'bg-primary/20 border border-primary/20' : 'bg-white/5'}`}>
+                <div key={i} className={`flex items-center justify-between p-2.5 rounded-xl transition-all ${player.cashedOut ? 'bg-success/5 border border-success/20' : player.user === userProfile?.username ? 'bg-primary/20 border border-primary/40' : 'bg-white/5'}`}>
                   <div className="flex items-center gap-2">
-                    <img src={player.avatarUrl} className="w-6 h-6 rounded-lg object-cover" />
-                    <span className="text-xs font-bold truncate max-w-[80px]">{player.user}</span>
+                    <img src={player.avatarUrl} className="w-7 h-7 rounded-lg object-cover border border-white/10" alt="Avatar" />
+                    <span className={`text-[11px] font-bold truncate max-w-[80px] ${player.cashedOut ? 'text-success' : 'text-white'}`}>{player.user}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-bold text-white/40">R$ {player.bet}</span>
-                    {player.cashedOut && <span className="text-[10px] font-black text-primary">{player.cashedOutAt?.toFixed(2)}x</span>}
+                    {player.cashedOut && (
+                      <div className="px-1.5 py-0.5 bg-success/20 rounded border border-success/30">
+                        <span className="text-[9px] font-black text-success">{player.cashedOutAt?.toFixed(2)}x</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -184,22 +208,87 @@ export default function RocketPage() {
         </div>
 
         <div className="lg:col-span-3 space-y-6">
-          <div className="flex gap-2">
-            {history.map((h, i) => <div key={i} className="px-3 py-1 bg-white/5 rounded-lg text-xs font-bold">{h}x</div>)}
+          <div className="flex gap-2 overflow-x-auto no-scrollbar py-2">
+            {history.map((h, i) => (
+              <motion.div 
+                initial={{ scale: 0.8, opacity: 0 }} 
+                animate={{ scale: 1, opacity: 1 }} 
+                key={i} 
+                className={`px-4 py-1.5 rounded-lg text-xs font-black shrink-0 border-b-2 ${h >= 2 ? 'bg-primary/20 text-primary border-primary/40' : 'bg-white/5 text-muted-foreground border-white/10'}`}
+              >
+                {h.toFixed(2)}x
+              </motion.div>
+            ))}
           </div>
-          <div className="glass-purple h-[500px] rounded-[40px] relative flex items-center justify-center border-2 border-primary/20 overflow-hidden">
-            <div className={`text-8xl font-black ${gameState === 'crashed' ? 'text-red-500' : 'text-primary'}`}>
+          
+          <div className="glass-purple h-[500px] rounded-[40px] relative flex items-center justify-center border-2 border-primary/20 overflow-hidden shadow-2xl">
+            {/* Background Decorative Grid */}
+            <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '40px 40px' }} />
+            
+            <motion.div 
+              key={multiplier}
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              className={`text-8xl sm:text-9xl font-black transition-colors duration-300 drop-shadow-[0_0_30px_rgba(200,153,255,0.3)] ${gameState === 'crashed' ? 'text-red-500 scale-110' : 'text-primary'}`}
+            >
               {multiplier.toFixed(2)}x
-            </div>
-            {gameState === 'waiting' && (
-              <div className="absolute inset-0 bg-background/60 backdrop-blur-md flex flex-col items-center justify-center">
-                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-2">Next Round In</p>
-                <p className="text-6xl font-black text-primary">{countdown}s</p>
-              </div>
-            )}
-            {gameState === 'crashed' && (
-              <div className="absolute inset-0 bg-red-500/10 backdrop-blur-md flex flex-col items-center justify-center">
-                <p className="text-8xl font-black text-red-500 mb-2">CRASHED!</p>
+            </motion.div>
+
+            <AnimatePresence>
+              {gameState === 'waiting' && (
+                <motion.div 
+                  initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
+                  animate={{ opacity: 1, backdropFilter: 'blur(12px)' }}
+                  exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
+                  className="absolute inset-0 bg-background/60 flex flex-col items-center justify-center z-30"
+                >
+                  <motion.div
+                    animate={{ y: [0, -10, 0] }}
+                    transition={{ repeat: Infinity, duration: 2 }}
+                    className="w-20 h-20 bg-primary/20 rounded-3xl flex items-center justify-center border-2 border-primary/40 mb-6"
+                  >
+                    <RocketIcon className="w-10 h-10 text-primary" />
+                  </motion.div>
+                  <p className="text-xs font-black uppercase tracking-[0.3em] text-primary/60 mb-2">Preparing Launch</p>
+                  <p className="text-7xl font-black text-white">{countdown}s</p>
+                </motion.div>
+              )}
+
+              {gameState === 'crashed' && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="absolute inset-0 bg-red-500/10 backdrop-blur-md flex flex-col items-center justify-center z-30"
+                >
+                  <div className="relative">
+                    <motion.div 
+                      animate={{ scale: [1, 1.2, 1] }} 
+                      transition={{ duration: 0.5, repeat: 3 }}
+                      className="text-8xl sm:text-9xl font-black text-red-500 mb-2 drop-shadow-[0_0_50px_rgba(239,68,68,0.5)]"
+                    >
+                      CRASHED!
+                    </motion.div>
+                    <div className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-2 px-6 py-2 bg-red-500 text-white font-black rounded-full text-xl shadow-xl">
+                      <Zap className="w-6 h-6 fill-current" />
+                      {multiplier.toFixed(2)}x
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Flying Stars Effect */}
+            {gameState === 'flying' && (
+              <div className="absolute inset-0 pointer-events-none">
+                {Array.from({ length: 15 }).map((_, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ x: "110%", y: Math.random() * 100 + "%" }}
+                    animate={{ x: "-10%" }}
+                    transition={{ duration: Math.random() * 1 + 0.5, repeat: Infinity, ease: "linear" }}
+                    className="absolute w-1 h-1 bg-white/30 rounded-full"
+                  />
+                ))}
               </div>
             )}
           </div>

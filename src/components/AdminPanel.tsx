@@ -129,6 +129,23 @@ export const AdminPanel = () => {
     setAnnImage('');
   };
 
+  const handleSetCrashMultiplier = () => {
+    const mult = parseFloat(targetMult);
+    if (isNaN(mult) || mult <= 1) {
+      toast({ variant: "destructive", title: "Invalid Multiplier", description: "Please enter a value greater than 1.00" });
+      return;
+    }
+    setNextCrashMultiplier(mult);
+    toast({
+      title: (
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="w-5 h-5 text-success" />
+          <span className="text-success font-black">Successfully Set at {mult.toFixed(2)}x</span>
+        </div>
+      ) as any,
+    });
+  };
+
   const handleOnlinePlayersChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseInt(e.target.value);
     updateSimSettings({ onlinePlayers: isNaN(val) ? 0 : val });
@@ -257,7 +274,7 @@ export const AdminPanel = () => {
           </div>
         )}
 
-        {/* Rocket Controls - Both */}
+        {/* Rocket Ops - Both */}
         <div className="pt-4 border-t border-white/10">
           <label className="text-[10px] font-black text-primary uppercase mb-3 flex items-center gap-2">
             <Rocket className="w-3 h-3" /> Rocket Ops
@@ -265,8 +282,8 @@ export const AdminPanel = () => {
           <div className="space-y-2">
             <Input type="number" placeholder="Crash at..." value={targetMult} onChange={e => setTargetMult(e.target.value)} className="h-8 text-xs bg-black/10" />
             <div className="flex gap-2">
-              <Button onClick={() => setNextCrashMultiplier(parseFloat(targetMult))} className="flex-1 h-8 bg-primary text-background text-[10px]">SET</Button>
-              <Button onClick={triggerImmediateCrash} variant="destructive" className="flex-1 h-8 text-[10px]">CRASH NOW</Button>
+              <Button onClick={handleSetCrashMultiplier} className="flex-1 h-8 bg-primary text-background text-[10px] font-black uppercase">SET</Button>
+              <Button onClick={() => { triggerImmediateCrash(); toast({ title: "Crashing Now!", variant: "destructive" }); }} variant="destructive" className="flex-1 h-8 text-[10px] font-black uppercase">CRASH NOW</Button>
             </div>
           </div>
         </div>
