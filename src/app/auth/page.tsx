@@ -14,6 +14,20 @@ import { useToast } from '@/hooks/use-toast';
 
 type AuthStep = 'LOGIN' | 'SIGNUP';
 
+// 50 Hardcoded Invite Keys for the system
+const HARDCODED_INVITE_KEYS = [
+  'KORONE-1111', 'KORONE-2222', 'KORONE-3333', 'KORONE-4444', 'KORONE-5555',
+  'KORONE-6666', 'KORONE-7777', 'KORONE-8888', 'KORONE-9999', 'KORONE-1010',
+  'KORONE-2020', 'KORONE-3030', 'KORONE-4040', 'KORONE-5050', 'KORONE-6060',
+  'KORONE-7070', 'KORONE-8080', 'KORONE-9090', 'KORONE-A1A1', 'KORONE-B2B2',
+  'KORONE-C3C3', 'KORONE-D4D4', 'KORONE-E5E5', 'KORONE-F6F6', 'KORONE-G7G7',
+  'KORONE-H8H8', 'KORONE-I9I9', 'KORONE-J1J1', 'KORONE-K2K2', 'KORONE-L3L3',
+  'KORONE-M4M4', 'KORONE-N5N5', 'KORONE-O6O6', 'KORONE-P7P7', 'KORONE-Q8Q8',
+  'KORONE-R9R9', 'KORONE-S1S1', 'KORONE-T2T2', 'KORONE-U3U3', 'KORONE-V4V4',
+  'KORONE-W5W5', 'KORONE-X6X6', 'KORONE-Y7Y7', 'KORONE-Z8Z8', 'KORONE-VIP1',
+  'KORONE-VIP2', 'KORONE-VIP3', 'KORONE-CEO1', 'KORONE-OWNR', 'KORONE-DEW1'
+];
+
 export default function AuthPage() {
   const [step, setStep] = useState<AuthStep>('LOGIN');
   const [loading, setLoading] = useState(false);
@@ -33,9 +47,17 @@ export default function AuthPage() {
   };
 
   const validateUsername = (name: string) => {
-    const regex = /^[a-zA-Z0-9]+$/;
+    // Only lowercase letters and numbers, no special characters
+    const regex = /^[a-z0-9]+$/;
     if (name.length < 3) return "Username must be at least 3 characters.";
-    if (!regex.test(name)) return "Username cannot contain dots, underscores, or special characters.";
+    if (!regex.test(name)) return "Only lowercase letters and numbers are allowed.";
+    
+    // 80% chance that a 3-character username is "taken"
+    if (name.length === 3) {
+      const isTaken = Math.random() < 0.8;
+      if (isTaken) return "This rare 3-letter username is already taken.";
+    }
+    
     return null;
   };
 
@@ -52,7 +74,7 @@ export default function AuthPage() {
       const snap = await getDocs(q);
       
       if (snap.empty) {
-        toast({ variant: "destructive", title: "Error", description: "User not found." });
+        toast({ variant: "destructive", title: "User Not Found", description: "No account exists with this username." });
         setLoading(false);
         return;
       }
@@ -63,7 +85,7 @@ export default function AuthPage() {
       toast({ title: "Welcome Back", description: `Legend ${userData.username} has entered the lobby!` });
       router.push('/');
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Login Failed", description: "Invalid credentials. Please try again." });
+      toast({ variant: "destructive", title: "Login Failed", description: "Invalid password. Please try again." });
     } finally {
       setLoading(false);
     }
@@ -72,10 +94,10 @@ export default function AuthPage() {
   const handleSignup = async () => {
     const username = formData.username.trim();
     const password = formData.password.trim();
-    const inviteKey = formData.inviteKey.trim();
+    const inviteKey = formData.inviteKey.trim().toUpperCase();
 
     if (!username || !password || !inviteKey) {
-      toast({ variant: "destructive", title: "Incomplete Data", description: "Please fill all required fields." });
+      toast({ variant: "destructive", title: "Incomplete Data", description: "All fields are required to proceed." });
       return;
     }
 
@@ -86,35 +108,31 @@ export default function AuthPage() {
     }
 
     if (password.length < 8) {
-      toast({ variant: "destructive", title: "Validation Error", description: "Password must be at least 8 characters long." });
+      toast({ variant: "destructive", title: "Weak Password", description: "Password must be at least 8 characters long." });
       return;
     }
 
     setLoading(true);
     try {
       // 1. Check Invite Key
-      const hardcodedKeys = ['KORONE-7777', 'KORONE-8888'];
       const keyRef = doc(db, 'invite_keys', inviteKey);
       const keySnap = await getDoc(keyRef);
 
-      if (!keySnap.exists() && !hardcodedKeys.includes(inviteKey)) {
-        toast({ variant: "destructive", title: "Invalid Key", description: "This invite key does not exist." });
-        setLoading(false);
-        return;
-      }
-      
-      if (keySnap.exists() && keySnap.data().isUsed) {
-        toast({ variant: "destructive", title: "Key Used", description: "This key has already been consumed." });
+      const isValidHardcoded = HARDCODED_INVITE_KEYS.includes(inviteKey);
+      const isValidDB = keySnap.exists() && !keySnap.data().isUsed;
+
+      if (!isValidHardcoded && !isValidDB) {
+        toast({ variant: "destructive", title: "Invalid Key", description: "This invite key is invalid or already used." });
         setLoading(false);
         return;
       }
 
-      // 2. Check Duplicate Username
+      // 2. Check Duplicate Username in DB
       const q = query(collection(db, 'users'), where('usernameLowercase', '==', username.toLowerCase()));
       const userSnap = await getDocs(q);
       
       if (!userSnap.empty) {
-        toast({ variant: "destructive", title: "Username Taken", description: "This username is already taken." });
+        toast({ variant: "destructive", title: "Username Taken", description: "This username is already registered." });
         setLoading(false);
         return;
       }
@@ -143,13 +161,15 @@ export default function AuthPage() {
         createdAt: serverTimestamp()
       });
 
-      // 4. Mark Key as Used
-      await setDoc(doc(db, 'invite_keys', inviteKey), {
-        key: inviteKey,
-        isUsed: true,
-        usedBy: username,
-        usedAt: serverTimestamp()
-      }, { merge: true });
+      // 4. Mark Key as Used (if it exists in DB)
+      if (isValidDB) {
+        await setDoc(doc(db, 'invite_keys', inviteKey), {
+          key: inviteKey,
+          isUsed: true,
+          usedBy: username,
+          usedAt: serverTimestamp()
+        }, { merge: true });
+      }
 
       toast({ title: "Account Created!", description: "Welcome to KoroneBet! Your journey begins now." });
       router.push('/');
@@ -200,11 +220,11 @@ export default function AuthPage() {
                 </div>
                 <div className="relative">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary/40" />
-                  <Input name="username" placeholder="Username (Min 3 chars)" value={formData.username} onChange={handleInputChange} className="bg-black/20 border-white/10 h-14 pl-12 rounded-2xl" />
+                  <Input name="username" placeholder="Lowercase letters and numbers only" value={formData.username} onChange={handleInputChange} className="bg-black/20 border-white/10 h-14 pl-12 rounded-2xl" />
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary/40" />
-                  <Input name="password" type="password" placeholder="Password (Min 8 chars)" value={formData.password} onChange={handleInputChange} className="bg-black/20 border-white/10 h-14 pl-12 rounded-2xl" />
+                  <Input name="password" type="password" placeholder="Password (Min 8 characters)" value={formData.password} onChange={handleInputChange} className="bg-black/20 border-white/10 h-14 pl-12 rounded-2xl" />
                 </div>
                 <Button onClick={handleSignup} disabled={loading} className="w-full h-16 bg-accent text-accent-foreground hover:bg-accent/90 rounded-2xl font-black shadow-[0_0_20px_rgba(255,153,230,0.3)]">
                   {loading ? <Loader2 className="animate-spin" /> : 'CREATE ACCOUNT'}
