@@ -9,7 +9,7 @@ import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useFirestore, useDoc } from '@/firebase';
-import { doc, updateDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, arrayUnion, Timestamp } from 'firebase/firestore';
 
 const REALISTIC_NAMES = ['Frosty_Blox', 'Lumine_Dev', 'VoidX_Gamer', 'Ghost_Rider', 'Stellar_YT', 'Valk_Queen', 'Neon_Player', 'Rex_Bet', 'Kone_Pro', 'Silent_Ace', 'Storm_Rider', 'Pixel_Warrior', 'Cyber_Punk', 'Robo_Gamer', 'Elite_King', 'Vortex', 'Pulse', 'Shadow', 'Azure', 'Cinder', 'Mystic', 'Blaze', 'Glitch', 'Static'];
 
@@ -106,46 +106,48 @@ export default function RocketPage() {
   useEffect(() => {
     if (!gameData || !db) return;
 
-    const startTime = gameData.startTime?.toMillis() || Date.now();
-    const elapsed = Date.now() - startTime;
-
-    // 1. Universal Driver: Catch up stale states
     const driveState = async () => {
+      const now = Date.now();
+      const startTime = gameData.startTime?.toMillis() || now;
+      const elapsed = now - startTime;
       const currentSeconds = elapsed / 1000;
       const currentCalcMult = Math.pow(1.065, currentSeconds);
       
-      // If flying and should have crashed
-      if (gameData.status === 'flying' && currentCalcMult >= (gameData.crashMultiplier || 1.1)) {
-        handleCrashSync(currentCalcMult);
+      // SAFETY: If data is stale or corrupted (e.g. status missing or time too far in past)
+      if (!gameData.status || elapsed > 600000) { // 10 minutes max round safety
+         await handleWaitCycleSync();
+         return;
+      }
+
+      // 1. If flying and should have crashed
+      if (gameData.status === 'flying') {
+        if (currentCalcMult >= (gameData.crashMultiplier || 1.1) || currentCalcMult > 1000) {
+          await handleCrashSync(Math.min(currentCalcMult, 1000));
+          return;
+        }
+      }
+
+      // 2. If crashed for too long (> 4s)
+      if (gameData.status === 'crashed' && elapsed > 4000) {
+        await handleWaitCycleSync();
         return;
       }
 
-      // If crashed for too long (> 5s)
-      if (gameData.status === 'crashed' && elapsed > 5000) {
-        handleWaitCycleSync();
-        return;
-      }
-
-      // If waiting for too long (> 6s)
+      // 3. If waiting for too long (> 6s)
       if (gameData.status === 'waiting' && elapsed > 6000) {
-        handleStartFlyingSync();
+        await handleStartFlyingSync();
         return;
-      }
-
-      // Safety reset for astronomical multipliers or errors
-      if (currentCalcMult > 1000 || !gameData.status) {
-        handleWaitCycleSync();
       }
     };
 
     driveState();
 
-    // 2. Flying Loop (Local visual update)
+    // Loop visual update
     if (gameData.status === 'flying') {
       const interval = setInterval(() => {
         const nowElapsed = Date.now() - (gameData.startTime?.toMillis() || Date.now());
         const seconds = nowElapsed / 1000;
-        const currentMult = Math.pow(1.065, seconds);
+        const currentMult = Math.min(Math.pow(1.065, seconds), 1000);
         const roundedMult = Number(currentMult.toFixed(2));
         
         setMultiplier(roundedMult);
@@ -158,17 +160,11 @@ export default function RocketPage() {
       return () => clearInterval(interval);
     }
 
-    // 3. Waiting Loop
     if (gameData.status === 'waiting') {
       const interval = setInterval(() => {
         const nowElapsed = Date.now() - (gameData.startTime?.toMillis() || Date.now());
         const remaining = Math.max(0, Math.ceil((5000 - nowElapsed) / 1000));
         setLocalCountdown(remaining);
-
-        if (nowElapsed >= 5000) {
-          handleStartFlyingSync();
-          clearInterval(interval);
-        }
       }, 100);
       return () => clearInterval(interval);
     }
@@ -178,10 +174,12 @@ export default function RocketPage() {
   const handleCrashSync = async (finalMult: number) => {
     if (!db || gameData?.status !== 'flying') return;
     try {
+      // Don't record bugged multipliers in history
+      const safeMult = finalMult > 1000 ? 1.00 : Number(finalMult.toFixed(2));
       await updateDoc(gameDocRef, {
         status: 'crashed',
         startTime: serverTimestamp(),
-        history: arrayUnion(Number(finalMult.toFixed(2)))
+        history: arrayUnion(safeMult)
       });
       playSound(SOUNDS.CRASH);
     } catch (e) {}
@@ -199,7 +197,7 @@ export default function RocketPage() {
   };
 
   const handleWaitCycleSync = async () => {
-    if (!db || (gameData?.status !== 'crashed' && gameData?.status !== 'flying' && !!gameData?.status)) return;
+    if (!db) return;
     try {
       const crashPoint = 1 + (Math.random() * Math.random() * 12);
       await updateDoc(gameDocRef, {
@@ -245,7 +243,7 @@ export default function RocketPage() {
     });
   };
 
-  // Bot Simulations tied to RoundID
+  // Bot Simulations
   useEffect(() => {
     if (!gameData?.roundId) return;
     const seed = gameData.roundId.split('').reduce((a: number, b: string) => (a + b.charCodeAt(0)), 0);
@@ -286,7 +284,11 @@ export default function RocketPage() {
   }, [gameData?.status, multiplier]);
 
   const displayHistory = useMemo(() => {
-    return (gameData?.history || []).slice(-12).reverse();
+    // Filter out bugged values from display
+    return (gameData?.history || [])
+      .filter((h: number) => h < 500)
+      .slice(-12)
+      .reverse();
   }, [gameData?.history]);
 
   const renderButton = () => {
