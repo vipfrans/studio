@@ -3,11 +3,10 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Sparkles, Rocket, Megaphone, UserPlus, Users, MessageSquare } from 'lucide-react';
+import { X, Sparkles, Rocket, Megaphone, UserPlus, Users } from 'lucide-react';
 import { useRobux } from '@/context/RobuxContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Slider } from '@/components/ui/slider';
 import { useFirestore } from '@/firebase';
 import { doc, setDoc, serverTimestamp, collection, query, where, getDocs, updateDoc, increment } from 'firebase/firestore';
 
@@ -70,6 +69,11 @@ export const AdminPanel = () => {
     setAnnImage('');
   };
 
+  const handleOnlinePlayersChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseInt(e.target.value);
+    updateSimSettings({ onlinePlayers: isNaN(val) ? 0 : val });
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, x: -100 }}
@@ -91,38 +95,43 @@ export const AdminPanel = () => {
           </label>
           
           <div className="space-y-2">
-            <p className="text-[8px] text-muted-foreground uppercase font-black">Online Players: {simSettings?.onlinePlayers || 0}</p>
-            <Slider 
-              min={500} 
-              max={10000} 
-              step={100} 
-              value={[simSettings?.onlinePlayers || 3000]} 
-              onValueChange={([val]) => updateSimSettings({ onlinePlayers: val })}
-            />
+            <p className="text-[8px] text-muted-foreground uppercase font-black">Online Players Count</p>
+            <div className="flex gap-2">
+              <Input 
+                type="number" 
+                placeholder="Ex: 3142" 
+                value={simSettings?.onlinePlayers || 0} 
+                onChange={handleOnlinePlayersChange}
+                className="h-9 text-xs font-bold bg-black/20"
+              />
+              <div className="flex items-center px-2 bg-primary/10 rounded-lg border border-primary/20 text-[10px] font-bold text-primary">
+                RUNNING
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2">
-            <p className="text-[8px] text-muted-foreground uppercase font-black">Rocket Bots Range: {simSettings?.minRocketBots || 0} - {simSettings?.maxRocketBots || 0}</p>
+            <p className="text-[8px] text-muted-foreground uppercase font-black">Rocket Bots Range</p>
             <div className="flex gap-2">
               <Input 
                 type="number" 
                 placeholder="Min" 
-                value={simSettings?.minRocketBots || ''} 
+                value={simSettings?.minRocketBots || 0} 
                 onChange={e => {
                   const val = parseInt(e.target.value);
                   updateSimSettings({ minRocketBots: isNaN(val) ? 0 : val });
                 }}
-                className="h-8 text-[10px]"
+                className="h-8 text-[10px] bg-black/10"
               />
               <Input 
                 type="number" 
                 placeholder="Max" 
-                value={simSettings?.maxRocketBots || ''} 
+                value={simSettings?.maxRocketBots || 0} 
                 onChange={e => {
                   const val = parseInt(e.target.value);
                   updateSimSettings({ maxRocketBots: isNaN(val) ? 0 : val });
                 }}
-                className="h-8 text-[10px]"
+                className="h-8 text-[10px] bg-black/10"
               />
             </div>
           </div>
@@ -150,8 +159,8 @@ export const AdminPanel = () => {
             <UserPlus className="w-3 h-3" /> Grant Robux
           </label>
           <div className="space-y-2">
-            <Input placeholder="Player Username" value={targetUsername} onChange={e => setTargetUsername(e.target.value)} className="h-8 text-xs" />
-            <Input type="number" placeholder="Amount" value={giftAmount} onChange={e => setGiftAmount(e.target.value)} className="h-8 text-xs" />
+            <Input placeholder="Player Username" value={targetUsername} onChange={e => setTargetUsername(e.target.value)} className="h-8 text-xs bg-black/10" />
+            <Input type="number" placeholder="Amount" value={giftAmount} onChange={e => setGiftAmount(e.target.value)} className="h-8 text-xs bg-black/10" />
             <Button onClick={handleGiveRobux} disabled={gifting} className="w-full h-8 bg-success text-background text-[10px] font-bold">
               {gifting ? 'GRANTING...' : 'GRANT ROBUX'}
             </Button>
@@ -164,8 +173,8 @@ export const AdminPanel = () => {
             <Megaphone className="w-3 h-3" /> Broadcast Message
           </label>
           <div className="space-y-2">
-            <Input placeholder="Message Content" value={annText} onChange={e => setAnnText(e.target.value)} className="h-8 text-xs" />
-            <Input placeholder="Optional Image URL" value={annImage} onChange={e => setAnnImage(e.target.value)} className="h-8 text-xs" />
+            <Input placeholder="Message Content" value={annText} onChange={e => setAnnText(e.target.value)} className="h-8 text-xs bg-black/10" />
+            <Input placeholder="Optional Image URL" value={annImage} onChange={e => setAnnImage(e.target.value)} className="h-8 text-xs bg-black/10" />
             <Button onClick={handlePostAnnouncement} className="w-full h-8 bg-accent text-background text-[10px] font-bold">BROADCAST</Button>
           </div>
         </div>
@@ -176,7 +185,7 @@ export const AdminPanel = () => {
             <Rocket className="w-3 h-3" /> Rocket Ops
           </label>
           <div className="space-y-2">
-            <Input type="number" placeholder="Crash at..." value={targetMult} onChange={e => setTargetMult(e.target.value)} className="h-8 text-xs" />
+            <Input type="number" placeholder="Crash at..." value={targetMult} onChange={e => setTargetMult(e.target.value)} className="h-8 text-xs bg-black/10" />
             <div className="flex gap-2">
               <Button onClick={() => setNextCrashMultiplier(parseFloat(targetMult))} className="flex-1 h-8 bg-primary text-background text-[10px]">SET</Button>
               <Button onClick={triggerImmediateCrash} variant="destructive" className="flex-1 h-8 text-[10px]">CRASH NOW</Button>
