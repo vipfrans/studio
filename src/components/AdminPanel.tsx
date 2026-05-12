@@ -30,7 +30,9 @@ export const AdminPanel = () => {
   const [maxUses, setMaxUses] = useState('1');
   const [creatingKey, setCreatingKey] = useState(false);
 
-  if (!userProfile || (userProfile.username?.toLowerCase() !== 'dew' && userProfile.role !== 'OWNER')) return null;
+  const hasAdminAccess = userProfile?.role === 'OWNER' || userProfile?.role === 'ADMIN' || userProfile?.username?.toLowerCase() === 'dew';
+
+  if (!userProfile || !hasAdminAccess) return null;
 
   const handleGiveRobux = async () => {
     if (!targetUsername || !giftAmount || !db) return;
@@ -129,6 +131,8 @@ export const AdminPanel = () => {
     updateSimSettings({ onlinePlayers: isNaN(val) ? 0 : val });
   };
 
+  const panelTitle = (userProfile.role === 'OWNER' || userProfile.username?.toLowerCase() === 'dew') ? 'FOUNDER PANEL' : 'ADMIN PANEL';
+
   return (
     <motion.div
       initial={{ opacity: 0, x: -100 }}
@@ -136,8 +140,8 @@ export const AdminPanel = () => {
       className="fixed top-20 left-6 z-[100] w-80 glass p-6 rounded-2xl border-2 border-primary/40 shadow-2xl overflow-y-auto no-scrollbar max-h-[80vh]"
     >
       <div className="flex items-center justify-between mb-6">
-        <h3 className="font-headline font-bold text-lg flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-primary" /> FOUNDER PANEL
+        <h3 className="font-headline font-bold text-lg flex items-center gap-2 text-primary">
+          <Sparkles className="w-4 h-4" /> {panelTitle}
         </h3>
         <Button variant="ghost" size="icon" onClick={toggleAdmin}><X className="w-4 h-4" /></Button>
       </div>
@@ -197,32 +201,6 @@ export const AdminPanel = () => {
                   {m}
                 </Button>
               ))}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <p className="text-[8px] text-muted-foreground uppercase font-black">Rocket Bots Range</p>
-            <div className="flex gap-2">
-              <Input 
-                type="number" 
-                placeholder="Min" 
-                value={simSettings?.minRocketBots ?? 0} 
-                onChange={e => {
-                  const val = parseInt(e.target.value);
-                  updateSimSettings({ minRocketBots: isNaN(val) ? 0 : val });
-                }}
-                className="h-8 text-[10px] bg-black/10"
-              />
-              <Input 
-                type="number" 
-                placeholder="Max" 
-                value={simSettings?.maxRocketBots ?? 0} 
-                onChange={e => {
-                  const val = parseInt(e.target.value);
-                  updateSimSettings({ maxRocketBots: isNaN(val) ? 0 : val });
-                }}
-                className="h-8 text-[10px] bg-black/10"
-              />
             </div>
           </div>
         </div>

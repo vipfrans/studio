@@ -17,7 +17,8 @@ export const Navbar = () => {
   const router = useRouter();
   const [isBalanceMenuOpen, setIsBalanceMenuOpen] = useState(false);
 
-  const isOwner = userProfile?.role === 'OWNER' || userProfile?.username?.toLowerCase() === 'dew';
+  // السماح للمالك والأدمن برؤية لوحة التحكم
+  const hasAdminAccess = userProfile?.role === 'OWNER' || userProfile?.role === 'ADMIN' || userProfile?.username?.toLowerCase() === 'dew';
 
   return (
     <>
@@ -40,7 +41,7 @@ export const Navbar = () => {
             <span className="text-[10px] ml-2">{lang === 'EN' ? 'AR' : 'EN'}</span>
           </Button>
 
-          {isOwner && (
+          {hasAdminAccess && (
             <Button variant="ghost" size="icon" onClick={toggleAdmin} className="h-9 w-9 rounded-xl bg-primary/10">
               <Hammer className="w-5 h-5 text-primary" />
             </Button>
